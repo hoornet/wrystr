@@ -12,7 +12,7 @@ const NAV_ITEMS = [
 ] as const;
 
 export function Sidebar() {
-  const { currentView, setView, sidebarCollapsed, toggleSidebar } = useUIStore();
+  const { currentView, setView, sidebarCollapsed, toggleSidebar, openThread, goBack } = useUIStore();
   const { connected, notes } = useFeedStore();
   const { loggedIn, profile, npub, logout } = useUserStore();
   const [showLogin, setShowLogin] = useState(false);
@@ -43,6 +43,19 @@ export function Sidebar() {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-2">
+          {loggedIn && !sidebarCollapsed && (
+            <button
+              onClick={() => setView("article-editor")}
+              className={`w-full text-left px-3 py-1.5 flex items-center gap-2 text-[12px] transition-colors mb-1 ${
+                currentView === "article-editor"
+                  ? "text-accent bg-accent/8"
+                  : "text-text-muted hover:text-text hover:bg-bg-hover"
+              }`}
+            >
+              <span className="w-4 text-center text-[14px]">✦</span>
+              <span>write article</span>
+            </button>
+          )}
           {NAV_ITEMS.map((item) => (
             <button
               key={item.id}

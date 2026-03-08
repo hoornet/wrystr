@@ -4,6 +4,7 @@ import { RelaysView } from "./components/shared/RelaysView";
 import { SettingsView } from "./components/shared/SettingsView";
 import { ProfileView } from "./components/profile/ProfileView";
 import { ThreadView } from "./components/thread/ThreadView";
+import { ArticleEditor } from "./components/article/ArticleEditor";
 import { useUIStore } from "./stores/ui";
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
         {currentView === "settings" && <SettingsView />}
         {currentView === "profile" && <ProfileView />}
         {currentView === "thread" && <ThreadView />}
+        {currentView === "article-editor" && <ArticleEditor />}
       </main>
     </div>
   );

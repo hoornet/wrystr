@@ -61,6 +61,37 @@ export async function fetchGlobalFeed(limit: number = 50): Promise<NDKEvent[]> {
   return Array.from(events).sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
 }
 
+export async function publishArticle(opts: {
+  title: string;
+  content: string;
+  summary?: string;
+  image?: string;
+  tags?: string[];
+}): Promise<void> {
+  const instance = getNDK();
+  if (!instance.signer) throw new Error("Not logged in");
+
+  const slug = opts.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60) + "-" + Date.now();
+
+  const event = new NDKEvent(instance);
+  event.kind = 30023;
+  event.content = opts.content;
+  event.tags = [
+    ["d", slug],
+    ["title", opts.title],
+    ["published_at", String(Math.floor(Date.now() / 1000))],
+  ];
+  if (opts.summary) event.tags.push(["summary", opts.summary]);
+  if (opts.image) event.tags.push(["image", opts.image]);
+  if (opts.tags) opts.tags.forEach((t) => event.tags.push(["t", t]));
+
+  await event.publish();
+}
+
 export async function publishReaction(eventId: string, eventPubkey: string, reaction = "+"): Promise<void> {
   const instance = getNDK();
   if (!instance.signer) throw new Error("Not logged in");

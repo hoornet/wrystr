@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0a0a0a;
+  --color-bg-raised: #111111;
+  --color-bg-hover: #1a1a1a;
+  --color-border: #222222;
+  --color-border-subtle: #1a1a1a;
+  --color-text: #e0e0e0;
+  --color-text-muted: #777777;
+  --color-text-dim: #555555;
+  --color-accent: #8b5cf6;
+  --color-accent-hover: #7c3aed;
+  --color-zap: #f59e0b;
+  --color-danger: #ef4444;
+  --color-success: #22c55e;
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", monospace;
+}
+
+* {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection in note content */
+.note-content {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* Scrollbar — thin, minimal */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-dim);
+}

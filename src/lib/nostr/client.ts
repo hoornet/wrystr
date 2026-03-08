@@ -19,7 +19,7 @@ export function getNDK(): NDK {
 }
 
 function waitForConnectedRelay(instance: NDK, timeoutMs = 10000): Promise<void> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     const timer = setTimeout(() => {
       // Even on timeout, continue — some relays may connect later
       console.warn("Relay connection timeout, continuing anyway");

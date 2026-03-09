@@ -100,11 +100,15 @@ function EditProfileForm({ pubkey, onSaved }: { pubkey: string; onSaved: () => v
 
 export function ProfileView() {
   const { selectedPubkey, goBack } = useUIStore();
-  const { pubkey: ownPubkey, loggedIn, follows, follow, unfollow } = useUserStore();
+  const { pubkey: ownPubkey, profile: ownProfile, loggedIn, follows, follow, unfollow } = useUserStore();
   const pubkey = selectedPubkey!;
   const isOwn = pubkey === ownPubkey;
 
-  const profile = useProfile(pubkey);
+  // For own profile, use the user store directly — it's updated immediately
+  // after save. useProfile() only re-fetches when pubkey changes, so it would
+  // show stale data until the user navigates away and back.
+  const fetchedProfile = useProfile(pubkey);
+  const profile = isOwn ? ownProfile : fetchedProfile;
   const [notes, setNotes] = useState<NDKEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);

@@ -80,15 +80,36 @@ platform that happens to live on Nostr, not a social feed that happens to suppor
 
 ---
 
+### 10. Project funding & support UI
+
+> **TODO — brainstorm needed:** Users should have an easy, visible way to support the
+> project financially. This should feel native to the Nostr/Bitcoin ecosystem, not like
+> a generic donate button.
+>
+> Options to design around:
+> - **Bitcoin on-chain** — static address or xpub-derived address
+> - **Lightning** — LNURL-pay / Lightning address (instant, low-fee)
+> - **Zaps** — zap the developer's Nostr profile directly from within the app
+> - **Recurring** — Lightning recurring payments (NIP-47 or similar)
+>
+> UI ideas: a small persistent icon (⚡ or ₿) in the sidebar footer, an About modal,
+> or a dedicated Support page. Should be tasteful and opt-in, never nagging.
+> Ties directly into the zap infrastructure we'll build for NIP-57 anyway.
+
+---
+
 ## What's already done (for reference)
 
 - Global + following feed
 - Note rendering (images, video, mentions, hashtags)
 - Compose + reply
-- Reactions (like button, localStorage-persisted)
+- Reactions (like button + network counts)
+- Follow / unfollow (NIP-02)
 - Profile view + edit
 - Thread view
 - Article editor (NIP-23, with draft auto-save)
+- Search: NIP-50 full-text, hashtag (#t filter), people
+- Settings: relay add/remove (persisted), npub copy
 - Login (nsec + read-only pubkey)
-- Relay connection status view (read-only)
+- Relay connection status view
 - NDK wrapper for all Nostr interactions

@@ -10,15 +10,19 @@ Early development. Core features working. Not yet ready for general release.
 
 ## Features
 
-- **Global & following feed** — live notes from relays, filtered to your network
-- **Compose & post** — write and publish notes (kind 1)
-- **Replies** — inline reply composer on every note, opens in thread view
-- **Reactions** — like notes (NIP-25), persisted locally
-- **Thread view** — click any note to see it with its replies
-- **Profile view** — click any name or avatar to view their profile and notes
-- **Editable own profile** — update your display name, bio, picture, NIP-05, Lightning address and more (kind 0)
+- **Onboarding** — key generation built-in, plain-language explanation, nsec backup flow; no browser extension required
+- **Global & following feed** — live notes from relays, tab-switched to your network
+- **Compose & post** — write and publish notes (kind 1), Ctrl+Enter to send
+- **Replies** — inline reply composer on every note, full thread view
+- **Reactions** — like notes (NIP-25) with live network counts
+- **Follow / Unfollow** — follow and unfollow from any profile (NIP-02), updates contact list on-chain
+- **Thread view** — click any note to see it with all its replies
+- **Profile view** — click any name or avatar; edit your own profile (kind 0)
 - **Long-form article editor** — write and publish markdown articles (NIP-23) with title, summary, tags, cover image, live preview, and auto-save drafts
-- **Login** — nsec (private key) or npub (read-only), with browser password manager support
+- **Zaps** — send Lightning payments via NWC (NIP-47 + NIP-57); amount presets, custom amounts, optional comment
+- **Search** — NIP-50 full-text search, `#hashtag` topic search, people search with inline follow
+- **Settings** — relay add/remove (live, persisted), NWC wallet connection, npub copy
+- **Login** — nsec (full access) or npub (read-only)
 
 ## Stack
 
@@ -26,7 +30,7 @@ Early development. Core features working. Not yet ready for general release.
 |---|---|
 | Desktop shell | Tauri 2.0 (Rust) |
 | Frontend | React 19 + TypeScript + Vite |
-| Nostr protocol | NDK (Nostr Dev Kit) |
+| Nostr protocol | NDK 3.x (Nostr Dev Kit) |
 | Styling | Tailwind CSS 4 |
 | State | Zustand |
 
@@ -42,16 +46,14 @@ npm run tauri build     # production binary
 
 ## Roadmap
 
-- [ ] Key generation + onboarding flow
-- [ ] OS keychain for secure key storage
-- [ ] SQLite local cache
-- [ ] Zaps (NIP-57) + Lightning Wallet Connect (NIP-47)
-- [ ] Follow/unfollow
-- [ ] Search (NIP-50)
+See [ROADMAP.md](./ROADMAP.md) for the full prioritised next steps.
+
+Near-term:
+- [ ] OS keychain for secure key storage (Rust backend)
+- [ ] SQLite local note cache
 - [ ] Direct messages (NIP-17/44)
 - [ ] Read long-form articles in-app
-- [ ] Relay management UI
-- [ ] GitHub Releases distribution + Tauri auto-updater
+- [ ] GitHub Releases + Tauri auto-updater
 
 ## License
 

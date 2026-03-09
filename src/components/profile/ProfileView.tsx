@@ -6,6 +6,7 @@ import { useProfile, invalidateProfileCache } from "../../hooks/useProfile";
 import { fetchUserNotes, publishProfile } from "../../lib/nostr";
 import { shortenPubkey } from "../../lib/utils";
 import { NoteCard } from "../feed/NoteCard";
+import { ZapModal } from "../zap/ZapModal";
 
 function EditProfileForm({ pubkey, onSaved }: { pubkey: string; onSaved: () => void }) {
   const { profile, fetchOwnProfile } = useUserStore();
@@ -108,6 +109,7 @@ export function ProfileView() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [followPending, setFollowPending] = useState(false);
+  const [showZap, setShowZap] = useState(false);
 
   const isFollowing = follows.includes(pubkey);
 
@@ -161,17 +163,25 @@ export function ProfileView() {
           </button>
         )}
         {!isOwn && loggedIn && (
-          <button
-            onClick={handleFollowToggle}
-            disabled={followPending}
-            className={`text-[11px] px-3 py-1 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-              isFollowing
-                ? "border-border text-text-muted hover:text-danger hover:border-danger/40"
-                : "border-accent/60 text-accent hover:bg-accent hover:text-white"
-            }`}
-          >
-            {followPending ? "…" : isFollowing ? "unfollow" : "follow"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowZap(true)}
+              className="text-[11px] px-3 py-1 border border-border text-zap hover:border-zap/40 hover:bg-zap/5 transition-colors"
+            >
+              ⚡ zap
+            </button>
+            <button
+              onClick={handleFollowToggle}
+              disabled={followPending}
+              className={`text-[11px] px-3 py-1 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                isFollowing
+                  ? "border-border text-text-muted hover:text-danger hover:border-danger/40"
+                  : "border-accent/60 text-accent hover:bg-accent hover:text-white"
+              }`}
+            >
+              {followPending ? "…" : isFollowing ? "unfollow" : "follow"}
+            </button>
+          </div>
         )}
       </header>
 
@@ -217,6 +227,14 @@ export function ProfileView() {
               </div>
             </div>
           </div>
+        )}
+
+        {showZap && (
+          <ZapModal
+            target={{ type: "profile", pubkey }}
+            recipientName={name}
+            onClose={() => setShowZap(false)}
+          />
         )}
 
         {/* Notes */}

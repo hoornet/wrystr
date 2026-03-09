@@ -7,6 +7,7 @@ import { useUIStore } from "../../stores/ui";
 import { timeAgo, shortenPubkey } from "../../lib/utils";
 import { publishReaction, publishReply } from "../../lib/nostr";
 import { NoteContent } from "./NoteContent";
+import { ZapModal } from "../zap/ZapModal";
 
 interface NoteCardProps {
   event: NDKEvent;
@@ -35,6 +36,7 @@ export function NoteCard({ event }: NoteCardProps) {
   const [replyError, setReplyError] = useState<string | null>(null);
   const [replySent, setReplySent] = useState(false);
   const replyRef = useRef<HTMLTextAreaElement>(null);
+  const [showZap, setShowZap] = useState(false);
 
   const handleLike = async () => {
     if (!loggedIn || liked || liking) return;
@@ -139,7 +141,21 @@ export function NoteCard({ event }: NoteCardProps) {
               >
                 {liked ? "♥" : "♡"}{reactionCount !== null && reactionCount > 0 ? ` ${reactionCount}` : liked ? " liked" : " like"}
               </button>
+              <button
+                onClick={() => setShowZap(true)}
+                className="text-[11px] text-text-dim hover:text-zap transition-colors"
+              >
+                ⚡ zap
+              </button>
             </div>
+          )}
+
+          {showZap && (
+            <ZapModal
+              target={{ type: "note", event, recipientPubkey: event.pubkey }}
+              recipientName={name}
+              onClose={() => setShowZap(false)}
+            />
           )}
 
           {/* Inline reply box */}

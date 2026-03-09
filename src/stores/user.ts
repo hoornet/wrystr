@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { NDKPrivateKeySigner } from "@nostr-dev-kit/ndk";
-import { getNDK } from "../lib/nostr";
+import { getNDK, publishContactList } from "../lib/nostr";
 import { nip19 } from "@nostr-dev-kit/ndk";
 
 interface UserState {
@@ -16,6 +16,8 @@ interface UserState {
   logout: () => void;
   fetchOwnProfile: () => Promise<void>;
   fetchFollows: () => Promise<void>;
+  follow: (pubkey: string) => Promise<void>;
+  unfollow: (pubkey: string) => Promise<void>;
 }
 
 export const useUserStore = create<UserState>((set, get) => ({
@@ -129,5 +131,20 @@ export const useUserStore = create<UserState>((set, get) => ({
     } catch {
       // Non-critical
     }
+  },
+
+  follow: async (pubkey: string) => {
+    const { follows } = get();
+    if (follows.includes(pubkey)) return;
+    const updated = [...follows, pubkey];
+    set({ follows: updated });
+    await publishContactList(updated);
+  },
+
+  unfollow: async (pubkey: string) => {
+    const { follows } = get();
+    const updated = follows.filter((pk) => pk !== pubkey);
+    set({ follows: updated });
+    await publishContactList(updated);
   },
 }));

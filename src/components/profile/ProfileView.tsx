@@ -99,7 +99,7 @@ function EditProfileForm({ pubkey, onSaved }: { pubkey: string; onSaved: () => v
 
 export function ProfileView() {
   const { selectedPubkey, goBack } = useUIStore();
-  const { pubkey: ownPubkey } = useUserStore();
+  const { pubkey: ownPubkey, loggedIn, follows, follow, unfollow } = useUserStore();
   const pubkey = selectedPubkey!;
   const isOwn = pubkey === ownPubkey;
 
@@ -107,6 +107,22 @@ export function ProfileView() {
   const [notes, setNotes] = useState<NDKEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [followPending, setFollowPending] = useState(false);
+
+  const isFollowing = follows.includes(pubkey);
+
+  const handleFollowToggle = async () => {
+    setFollowPending(true);
+    try {
+      if (isFollowing) {
+        await unfollow(pubkey);
+      } else {
+        await follow(pubkey);
+      }
+    } finally {
+      setFollowPending(false);
+    }
+  };
 
   const name = profile?.displayName || profile?.name || shortenPubkey(pubkey);
   const avatar = profile?.picture;
@@ -142,6 +158,19 @@ export function ProfileView() {
             className="text-[11px] px-3 py-1 border border-border text-text-muted hover:text-accent hover:border-accent/40 transition-colors"
           >
             edit profile
+          </button>
+        )}
+        {!isOwn && loggedIn && (
+          <button
+            onClick={handleFollowToggle}
+            disabled={followPending}
+            className={`text-[11px] px-3 py-1 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+              isFollowing
+                ? "border-border text-text-muted hover:text-danger hover:border-danger/40"
+                : "border-accent/60 text-accent hover:bg-accent hover:text-white"
+            }`}
+          >
+            {followPending ? "…" : isFollowing ? "unfollow" : "follow"}
           </button>
         )}
       </header>

@@ -191,6 +191,17 @@ export async function fetchUserNotes(pubkey: string, limit = 30): Promise<NDKEve
   return Array.from(events).sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
 }
 
+export async function publishContactList(pubkeys: string[]): Promise<void> {
+  const instance = getNDK();
+  if (!instance.signer) throw new Error("Not logged in");
+
+  const event = new NDKEvent(instance);
+  event.kind = 3;
+  event.content = "";
+  event.tags = pubkeys.map((pk) => ["p", pk]);
+  await event.publish();
+}
+
 export async function fetchProfile(pubkey: string) {
   const instance = getNDK();
   const user = instance.getUser({ pubkey });

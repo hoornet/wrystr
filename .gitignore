@@ -15,6 +15,9 @@ dist-ssr
 # Playwright output
 .playwright-mcp/
 
+# Private / not for public repo
+OPENSATS_APPLICATION.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

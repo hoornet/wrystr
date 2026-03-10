@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useUserStore } from "../../stores/user";
-import { useLightningStore } from "../../stores/lightning";
 import { useMuteStore } from "../../stores/mute";
-import { isValidNwcUri } from "../../lib/lightning/nwc";
 import { getNDK, getStoredRelayUrls, addRelay, removeRelay } from "../../lib/nostr";
 import { useProfile } from "../../hooks/useProfile";
+import { NWCWizard } from "./NWCWizard";
 
 function MutedRow({ pubkey, onUnmute }: { pubkey: string; onUnmute: () => void }) {
   const profile = useProfile(pubkey);
@@ -162,70 +161,10 @@ function IdentitySection() {
 }
 
 function WalletSection() {
-  const { nwcUri, setNwcUri, clearNwcUri } = useLightningStore();
-  const [input, setInput] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  const handleSave = () => {
-    const uri = input.trim();
-    if (!uri) return;
-    if (!isValidNwcUri(uri)) {
-      setError("Invalid NWC URI. Must start with nostr+walletconnect://");
-      return;
-    }
-    try {
-      setSaving(true);
-      setNwcUri(uri);
-      setInput("");
-      setError(null);
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setSaving(false);
-    }
-  };
-
   return (
     <section>
       <h2 className="text-text text-[11px] font-medium uppercase tracking-widest mb-2 text-text-dim">Lightning Wallet (NWC)</h2>
-      {nwcUri ? (
-        <div>
-          <div className="flex items-center gap-2 px-3 py-2 border border-border mb-2">
-            <span className="text-zap text-[11px]">⚡</span>
-            <span className="text-text text-[12px] flex-1">Wallet connected</span>
-            <button
-              onClick={clearNwcUri}
-              className="text-[10px] text-text-dim hover:text-danger transition-colors shrink-0"
-            >
-              disconnect
-            </button>
-          </div>
-          <p className="text-text-dim text-[10px] px-1">Your NWC connection is active. You can zap notes and profiles.</p>
-        </div>
-      ) : (
-        <div>
-          <textarea
-            value={input}
-            onChange={(e) => { setInput(e.target.value); setError(null); }}
-            placeholder="nostr+walletconnect://…"
-            rows={3}
-            className="w-full bg-bg border border-border px-3 py-2 text-text text-[11px] font-mono resize-none focus:outline-none focus:border-accent/50 placeholder:text-text-dim mb-2"
-            style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
-          />
-          {error && <p className="text-danger text-[11px] mb-2">{error}</p>}
-          <button
-            onClick={handleSave}
-            disabled={!input.trim() || saving}
-            className="px-4 py-1.5 text-[11px] border border-border text-text-muted hover:text-accent hover:border-accent/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            connect wallet
-          </button>
-          <p className="text-text-dim text-[10px] mt-2 px-1">
-            Get an NWC connection string from Alby, Mutiny, or any NWC-compatible wallet.
-          </p>
-        </div>
-      )}
+      <NWCWizard />
     </section>
   );
 }

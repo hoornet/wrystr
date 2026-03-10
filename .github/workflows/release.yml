@@ -58,6 +58,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Exclude Wayland libs from AppImage — the bundled ubuntu-22.04 versions
+          # conflict with mesa 26+ on Arch/modern distros causing EGL_BAD_PARAMETER.
+          # System libs are always used instead (correct behaviour for Wayland).
+          LINUXDEPLOY_EXCLUDELIST: "libwayland-egl.so.1 libwayland-client.so.0 libwayland-cursor.so.0 libwayland-server.so.0"
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Wrystr ${{ github.ref_name }}

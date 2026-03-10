@@ -1,28 +1,52 @@
 # Wrystr
 
-A cross-platform desktop Nostr client built with Tauri 2.0 + React + TypeScript. Aimed at being the best Nostr desktop experience — polished UI, deep Lightning integration, and first-class support for long-form writing.
+A cross-platform desktop Nostr client built with Tauri 2.0 + React + TypeScript. Polished UI, deep Lightning integration, and first-class support for long-form writing.
 
 > Named as a nod to Nostr with a wry twist.
 
-## Status
+## Download
 
-Early development. Core features working. Not yet ready for general release.
+Grab the latest release from the [Releases page](https://github.com/hoornet/wrystr/releases).
+
+| Platform | File |
+|---|---|
+| Linux | `.AppImage` (make executable, then run) |
+| Windows | `.exe` installer |
+| macOS (Apple Silicon) | `aarch64.dmg` |
+| macOS (Intel) | `x86_64.dmg` |
+
+No dependencies required — everything is bundled.
 
 ## Features
 
-- **Onboarding** — key generation built-in, plain-language explanation, nsec backup flow; no browser extension required
-- **Global & following feed** — live notes from relays, tab-switched to your network
-- **Compose & post** — write and publish notes (kind 1), Ctrl+Enter to send
-- **Replies** — inline reply composer on every note, full thread view
-- **Reactions** — like notes (NIP-25) with live network counts
-- **Follow / Unfollow** — follow and unfollow from any profile (NIP-02), updates contact list on-chain
-- **Thread view** — click any note to see it with all its replies
-- **Profile view** — click any name or avatar; edit your own profile (kind 0)
-- **Long-form article editor** — write and publish markdown articles (NIP-23) with title, summary, tags, cover image, live preview, and auto-save drafts
-- **Zaps** — send Lightning payments via NWC (NIP-47 + NIP-57); amount presets, custom amounts, optional comment
-- **Search** — NIP-50 full-text search, `#hashtag` topic search, people search with inline follow
-- **Settings** — relay add/remove (live, persisted), NWC wallet connection, npub copy
-- **Login** — nsec (full access) or npub (read-only)
+**Identity & accounts**
+- In-app key generation with plain-language nsec backup — no browser extension required
+- Login with nsec (full access) or npub (read-only)
+- **Multi-account switcher** — save multiple identities, switch instantly from the sidebar
+- **OS keychain integration** — nsec stored in macOS Keychain / Windows Credential Manager / Linux Secret Service; sessions survive restarts
+
+**Feed & content**
+- Global and following feeds with live relay connection
+- Compose notes, inline replies, full thread view
+- Reactions (NIP-25) with live network counts
+- Follow / unfollow (NIP-02) with contact list publishing
+- **Quote & Repost** (NIP-18) — one-click repost or quote with compose modal
+- **Mute users** (NIP-51) — muted list synced to relays, filtered from feed
+- Long-form article editor (NIP-23) with title, tags, cover image, live preview, auto-save drafts
+- Note rendering: images, video, mentions, hashtags, njump.me link interception
+
+**Lightning & zaps**
+- **NWC guided wizard** — wallet picker (Alby Hub, Alby Extension, Mutiny, Phoenix) with per-wallet setup steps and inline URI validation
+- Send zaps via NWC (NIP-47 + NIP-57) with amount presets, custom amounts, comment
+- **Zap history** — Received and Sent tabs with amounts, counterparts, comments
+- **Support / About page** — zap the developer, Lightning + Bitcoin QR codes, Ko-fi and GitHub links
+
+**Performance & UX**
+- **SQLite note cache** — feed loads instantly from local cache on startup; profiles cached for immediate avatar display
+- **System tray** — close button hides to tray; "Quit" in tray menu to fully exit
+- Collapsible sidebar (icon-only mode)
+- Search: NIP-50 full-text, `#hashtag`, people search with inline follow
+- Relay management: add/remove relays with live connection status
 
 ## Stack
 
@@ -33,6 +57,8 @@ Early development. Core features working. Not yet ready for general release.
 | Nostr protocol | NDK 3.x (Nostr Dev Kit) |
 | Styling | Tailwind CSS 4 |
 | State | Zustand |
+| Local storage | SQLite (rusqlite, bundled) |
+| Keychain | keyring crate (OS-native) |
 
 ## Development
 
@@ -48,13 +74,13 @@ npm run tauri build     # production binary
 
 See [ROADMAP.md](./ROADMAP.md) for the full prioritised next steps.
 
-Near-term:
-- [ ] OS keychain for secure key storage (Rust backend)
-- [ ] SQLite local note cache
-- [ ] Direct messages (NIP-17/44)
-- [ ] Read long-form articles in-app
-- [ ] GitHub Releases + Tauri auto-updater
+Up next:
+- Sidebar improvements (auto-hide, clearer collapse affordance)
+- Profile helpers (NIP-05 guide, image upload via NIP-96/Blossom)
+- Search improvements (NIP-50 relay detection)
+- Direct messages (NIP-44/17)
+- Long-form article reader view
 
 ## License
 
-MIT
+MIT — [hoornet](https://github.com/hoornet)

@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { id: "search" as const, label: "search", icon: "⌕" },
   { id: "relays" as const, label: "relays", icon: "⟐" },
   { id: "settings" as const, label: "settings", icon: "⚙" },
+  { id: "about" as const, label: "support", icon: "♥" },
 ] as const;
 
 export function Sidebar() {

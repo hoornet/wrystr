@@ -8,6 +8,7 @@ import { ProfileView } from "./components/profile/ProfileView";
 import { ThreadView } from "./components/thread/ThreadView";
 import { ArticleEditor } from "./components/article/ArticleEditor";
 import { OnboardingFlow } from "./components/onboarding/OnboardingFlow";
+import { AboutView } from "./components/shared/AboutView";
 import { useUIStore } from "./stores/ui";
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
         {currentView === "profile" && <ProfileView />}
         {currentView === "thread" && <ThreadView />}
         {currentView === "article-editor" && <ArticleEditor />}
+        {currentView === "about" && <AboutView />}
       </main>
     </div>
   );

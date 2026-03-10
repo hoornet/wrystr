@@ -1,146 +1,162 @@
-# Wrystr — Next Steps Roadmap
+# Wrystr — Roadmap
 
 ---
 
-## Vision note: more than a Nostr client
+## Vision: more than a Nostr client
 
 Wrystr is not just a great desktop Nostr client. **Long-form content is a first-class,
-distinguishing feature of this project** — not an afterthought, not a checkbox NIP.
+distinguishing feature** — not an afterthought, not a checkbox NIP.
 
 The article editor (NIP-23), the reading experience, the writing tools around it — these
 set Wrystr apart from other clients and define its identity. Think of it as a publishing
 platform that happens to live on Nostr, not a social feed that happens to support articles.
 
-> **TODO — brainstorm needed:** What does "owning long-form on Nostr desktop" actually
-> look like? Reading experience, discovery, editor features, monetization via zaps,
-> cross-posting, author identity — all of this needs a dedicated design session.
-> Leave this as an open thread until we sit down to work through it properly.
+---
+
+## Development process
+
+Each phase is built, then thoroughly tested (especially on Windows) before the next begins.
+Bugs found during testing are fixed before Phase N+1 starts. A release is cut between phases.
 
 ---
 
-## Up next
+## Phase 1 — Complete the core experience
+*Target: OpenSats application (April 1, 2026). Test on all platforms before Phase 2.*
 
-### 1. OS Keychain via Rust (Tauri backend)
-- Security-critical: private keys currently live in NDK signer memory only
-- nsec sessions don't survive app restart — keychain fixes this permanently
-- Tauri has keychain plugins ready (`tauri-plugin-keychain`)
+### 1. Long-form article reader (NIP-23)
+- We write articles but can't read them in-app — the single biggest gap given our positioning
+- Click any `nostr:naddr1…` reference or article link → open in a clean reader view
+- Render markdown, show title / author / published date / cover image
+- Zap button on articles (zap the author)
+- "Open in browser" fallback for unsupported content
 
-### 2. Multi-account / profile switcher
-- Nostr users regularly maintain separate identities (personal, professional, pseudonymous)
-- Near-blocker-level friction discovered during Windows playtest — session re-login every
-  restart is currently the #1 UX pain point
-- Depends on OS keychain (#1) — keys must persist for instant switching
-- UI: small account switcher in sidebar footer; click → list of saved accounts; one click to switch
-- No re-login flow — switching is instant once accounts are stored in keychain
-- v1: stored nsec accounts only; v2 could add NIP-46 remote signer support
+### 2. Zap counts on notes
+- Feed shows ♥ reaction counts but not ⚡ zap counts — a visible gap
+- Fetch kind 9735 receipts per note, sum the amounts, show inline
+- Existing zap infrastructure (NIP-47 + NIP-57) already built — display-layer only
 
-### 3. SQLite note caching
-- Notes disappear on every restart — no local persistence
-- Would make the app feel dramatically more solid and fast
-- Rust backend is the right place for this
+### 3. Quoted note inline preview
+- Quotes currently render `nostr:nevent1…` as plain linked text
+- Should show an inline card: author avatar, name, truncated content — same as other clients
+- Completes the NIP-18 quote/repost work already shipped
 
-### 4. About / Funding page
-- Hardcoded in-app page with all support options
-- Bitcoin on-chain address with scannable QR code
-- Lightning address with scannable QR code
-- Zap button (zap the developer's npub directly from within the app)
-- Links: GitHub (hoornet), Ko-fi/Jure, and any other funding sources
-- Lives in the sidebar footer or as a dedicated view — tasteful, never nagging
-- Ties into the zap infrastructure already built
-
-### 5. Mute / ignore user + anti-spam
-- "Ignore this user" from profile or note context menu (NIP-51 mute list)
-- Mute list persisted to Nostr so it follows you across clients
-- Settings toggles for basic spam filters (e.g. hide notes from accounts < N days old,
-  hide notes with no followers, hide pure bot patterns)
-- Consider: Web of Trust (WOT) score as an optional feed filter — needs design session
-
-### 6. Quote / Repost (NIP-18)
-- "Quote" wraps a note in your own post with added commentary
-- "Repost" is a plain re-broadcast (kind 6)
-- Both are standard and expected by Nostr users
-- Quote is more valuable — it drives conversation
-
-### 7. NWC setup UX — guided wizard
-- Plain-text NWC URI field is confusing for non-technical users (confirmed in Windows playtest)
-- Wizard: detect wallet type (Alby Hub, Mutiny, Phoenix), deep-link to the right wallet page,
-  show inline validation + clear error states on connection failure
-- Keep raw URI field as advanced fallback
-
-### 8. System tray / minimize to tray
-- Standard expectation for any messaging/social app on Windows
-- Without it, closing the window exits — unexpected for a persistent social client
-- Research needed for macOS (menu bar?) and Linux (varies by DE) before implementing
-- Tauri 2.0 has a tray API — Windows implementation should be straightforward
-
-### 9. Zap history view
-- Sent and received zaps should be visible in the app
-- Zap infrastructure (NIP-47 + NIP-57) already built — this is display-layer only
-- v1: simple list in a "Zaps" tab on the profile view, or a section in Settings
-- Good demo material for OpenSats reviewers
-
-### 10. Sidebar: collapsible to icon-only + auto-hide
-- Toggle already exists (clicking WRYSTR collapses to w-12 icons), but it's not obvious
-- Make the toggle affordance clearer — a visible ‹ / › button
-- Auto-hide mode: sidebar expands on hover/click, collapses automatically after N seconds
-  of activity in the main pane
-- Most important: the icon-only state should be the default or easily reachable
-
-### 11. Profile helpers for newcomers
-- **NIP-05**: link to a guide or offer a basic self-hosted verification path
-- **Avatar / banner image upload**: instead of pasting a URL, let users upload directly
-  (NIP-96 file storage or a simple Blossom upload via Tauri)
-- Newcomers fill in a URL field and have no idea what to put — this is a friction point
-
-### 12. Search: improve full-text + people
-- NIP-50 full-text (`bitcoin` query) returns zero results on most relays — the UI
-  should detect this and suggest using `#hashtag` instead, or show which relays support it
-- People search only works on NIP-50-capable relays; most don't support it
-- Consider: local people search by scanning follows-of-follows graph
-
-### 13. Direct Messages (NIP-44 / NIP-17)
-- Significant complexity (encryption, key handling, inbox model)
-- Major feature gap but non-trivial to implement well
-- NIP-17 (private DMs) is the modern standard; NIP-44 is the encryption layer
+### 4. Auto-updater
+- Users must manually download new releases — most will stay on old versions forever
+- Tauri has a built-in updater plugin (`tauri-plugin-updater`)
+- Needs a signed update manifest served from GitHub Releases
+- Show an unobtrusive "update available" banner, not a blocking modal
 
 ---
 
-## TODO — brainstorm sessions needed
+## Phase 2 — Engagement & reach
+*Test Phase 1 thoroughly first. Fix all reported issues before starting Phase 2.*
 
-### UI / look & feel
-- After Windows playtest: full design review of native feel, spacing, typography
-- The current UI is functional but has "amateur web app" feel on some surfaces
-- Target bar remains Telegram Desktop — fast, keyboard-navigable, feels native not webby
-- Specific surfaces to revisit: note cards, thread view, profile header, modals
-- **Windows playtest notes (10 Mar 2026):** install went smoothly, window resize/maximise
-  feels native; full design review still needed
+### 5. Notifications
+- No way to see mentions, replies to own notes, or incoming DMs without manually checking
+- Badge on the messages nav item for unread DMs
+- Notifications view: mentions of your pubkey, replies to your notes, new DMs
+- System notification (OS native) for DMs and mentions — Tauri has a notification plugin
+
+### 6. NIP-65 outbox model (relay lists, kind 10002)
+- Without NIP-65, we miss notes from people who publish to their own relay set
+- On profile open: fetch their kind 10002 relay list, query those relays for their notes
+- On publish: write to own relay list (configurable in settings)
+- Dramatically improves note discovery and reach
+
+### 7. Feed reply context
+- In the feed, replies look identical to top-level posts — no visual distinction
+- Show "↩ replying to @name" above the note content for kind-1 events with `e` tags
+- Clicking the context navigates to the parent note thread
+
+### 8. Keyboard shortcuts
+- A writing-focused desktop app should be keyboard-navigable
+- N — compose new note, R — reply to focused note, / — focus search
+- J/K — navigate feed up/down, Escape — close modal/back
+- Show shortcuts in a `?` help overlay
+
+---
+
+## Phase 3 — Polish & completeness
+*Test Phase 2 thoroughly first. Fix all reported issues before starting Phase 3.*
+
+### 9. NIP-17 DMs (gift wrap)
+- Current DMs use NIP-04 (kind 4) — works but deprecated and leaks metadata
+- NIP-17 wraps messages in gift wrap (kind 1059) for proper sender/recipient privacy
+- Needs inbox relay support (kind 10050) and ephemeral key signing
+- Not interoperable with NIP-04 — both should be supported during migration
+
+### 10. Image lightbox
+- Clicking an image in a note should open it full-size
+- Click outside or Escape to close
+
+### 11. Bookmark list (NIP-51, kind 10003)
+- Standard feature expected by users — save notes for later
+- Bookmark icon on NoteCard, synced to relays via NIP-51
+
+### 12. Follow suggestions / discovery
+- New users start with an empty Following feed and no guidance
+- Suggest popular accounts and curated starter packs
+- "People followed by people you follow" as a discovery surface
+
+### 13. UI polish pass
+- Full design review: note cards, thread view, profile header, modals
+- Target bar: Telegram Desktop — fast, keyboard-navigable, feels native not webby
+- Typography, spacing, colour contrast audit
+- Needs a dedicated design session before implementation
+
+---
+
+## Brainstorm backlog (not yet scheduled)
 
 ### Web of Trust (WOT)
-- Nostr has a concept of social graph distance for trust scoring
+- Social graph distance for trust scoring
 - Could power: feed ranking, spam filtering, people search, follow suggestions
-- Worth exploring but needs a dedicated design session — not a simple feature add
+- Needs dedicated design session
 
-### Long-form reading experience
-- We write articles but there's no reader view
-- Discovery, recommendations, reading history, estimated read time
-- This is a major differentiator — needs its own design session
+### Long-form features (NIP-23 depth)
+- Discovery: browse articles from followed authors, trending articles
+- Reading history, estimated read time, table of contents
+- Editor improvements: image upload, word count, tag suggestions
+- Cross-posting to other platforms
+
+### NIP-46 remote signer
+- Sign events via a remote signer (Nsecbunker, Amber, etc.)
+- Would complete the multi-account story for users who don't want nsec in keychain
 
 ---
 
-## What's already done
+## What's already shipped
 
-- **Onboarding**: key generation, nsec backup, plain-language UX, no extension required
-- **Global + following feed**, compose, reply, thread view
-- **Reactions** (NIP-25) with live network counts
-- **Follow / Unfollow** (NIP-02), contact list publishing
-- **Profile view + edit** (kind 0) — bug fix: own profile now updates immediately after save
-- **Long-form article editor** (NIP-23) with draft auto-save
-- **Zaps**: NWC wallet connect (NIP-47) + NIP-57 via NDKZapper, amount presets, comment
-- **Search**: NIP-50 full-text, hashtag (#t filter), people with inline follow
-- **Settings**: relay add/remove (live + persisted), NWC wallet setup, npub copy
-- **Sidebar**: collapsible to icon-only (click WRYSTR to toggle)
-- **Read-only mode**: npub login hides all write actions correctly
-- Note rendering (images, video, mentions, hashtags)
-- Relay connection status view
-- NDK 3.x wrapper for all Nostr interactions
-- GitHub Actions release: Linux AppImage, Windows exe/msi, macOS ARM dmg
+### v0.1.3
+- **OS keychain** — nsec stored securely; sessions survive restarts
+- **Multi-account switcher** — sidebar footer, instant switch, keychain-backed
+- **SQLite note + profile cache** — feed loads from local cache on startup
+- **Quote & Repost** (NIP-18) — one-click repost, compose modal for quotes
+- **Mute users** (NIP-51) — mute list synced to relays, filtered from feed
+- **NWC setup wizard** — guided wallet picker with per-wallet instructions + inline validation
+- **System tray** — close hides to tray; Quit in tray menu exits
+- **Zap history** — Received / Sent tabs with amounts, counterparts, comments
+- **About / Support page** — in-app zap, Lightning + Bitcoin QR codes
+
+### v0.1.4
+- **Sidebar** — explicit ‹/› toggle, state persisted, collapsed mode completeness
+- **Profile image upload** — uploads to nostr.build, auto-fills URL field
+- **NIP-05 live verification** — real-time domain check with ✓/✗ status
+- **Search improvements** — NIP-50 relay detection, hashtag fallback suggestion
+
+### v0.1.x (unreleased — on main)
+- **Direct Messages** (NIP-04) — conversation list, thread view, per-message decryption,
+  new conversation by npub/hex, "✉ message" button on profiles
+
+### Shipped earlier (v0.1.0 – v0.1.2)
+- Onboarding (key generation, nsec backup, plain-language UX)
+- Global + following feed, compose, inline replies, thread view
+- Reactions (NIP-25) with live network counts
+- Follow / unfollow (NIP-02), contact list publishing
+- Profile view + edit (kind 0)
+- Long-form article editor (NIP-23) with draft auto-save
+- Zaps via NWC (NIP-47 + NIP-57), amount presets, comments
+- Search: NIP-50 full-text, #hashtag, people with inline follow
+- Relay management with live connection status
+- Read-only (npub) login mode
+- GitHub Actions release: Linux AppImage, Windows exe/msi, macOS ARM + Intel dmg

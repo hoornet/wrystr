@@ -1,0 +1,163 @@
+import { useState } from "react";
+import { useUserStore, SavedAccount } from "../../stores/user";
+import { useUIStore } from "../../stores/ui";
+import { LoginModal } from "../shared/LoginModal";
+import { shortenPubkey } from "../../lib/utils";
+
+function Avatar({ account, size = 6 }: { account: SavedAccount; size?: number }) {
+  const initial = (account.name || account.npub || "?").charAt(0).toUpperCase();
+  const cls = `w-${size} h-${size} rounded-sm object-cover shrink-0`;
+  if (account.picture) {
+    return (
+      <img
+        src={account.picture}
+        alt=""
+        className={cls}
+        onError={(e) => {
+          (e.target as HTMLImageElement).style.display = "none";
+        }}
+      />
+    );
+  }
+  return (
+    <div className={`w-${size} h-${size} rounded-sm bg-accent/20 flex items-center justify-center text-accent text-[10px] shrink-0`}>
+      {initial}
+    </div>
+  );
+}
+
+export function AccountSwitcher() {
+  const { accounts, pubkey, switchAccount, removeAccount, logout } = useUserStore();
+  const { openProfile } = useUIStore();
+  const [open, setOpen] = useState(false);
+  const [showAddLogin, setShowAddLogin] = useState(false);
+
+  const current = accounts.find((a) => a.pubkey === pubkey) ?? null;
+  const others = accounts.filter((a) => a.pubkey !== pubkey);
+
+  const displayName = (a: SavedAccount) =>
+    a.name || shortenPubkey(a.npub);
+
+  const handleSwitch = async (targetPubkey: string) => {
+    setOpen(false);
+    await switchAccount(targetPubkey);
+  };
+
+  const handleRemove = (e: React.MouseEvent, targetPubkey: string) => {
+    e.stopPropagation();
+    removeAccount(targetPubkey);
+  };
+
+  const handleAddAccount = () => {
+    setOpen(false);
+    setShowAddLogin(true);
+  };
+
+  // Not logged in
+  if (!pubkey || !current) {
+    return (
+      <>
+        <div className="border-t border-border px-3 py-2">
+          {accounts.length > 0 && (
+            <div className="mb-1.5">
+              {accounts.map((a) => (
+                <button
+                  key={a.pubkey}
+                  onClick={() => handleSwitch(a.pubkey)}
+                  className="w-full flex items-center gap-2 px-1 py-1 text-left hover:bg-bg-hover transition-colors"
+                >
+                  <Avatar account={a} />
+                  <span className="text-text-muted text-[11px] truncate flex-1">{displayName(a)}</span>
+                </button>
+              ))}
+              <div className="border-t border-border my-1" />
+            </div>
+          )}
+          <button
+            onClick={() => setShowAddLogin(true)}
+            className="w-full px-2 py-1.5 text-[11px] border border-border text-text-muted hover:text-accent hover:border-accent/40 transition-colors"
+          >
+            login
+          </button>
+        </div>
+        {showAddLogin && <LoginModal onClose={() => setShowAddLogin(false)} />}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="border-t border-border shrink-0">
+        {/* Expanded account list */}
+        {open && (
+          <div className="border-b border-border">
+            {others.map((a) => (
+              <div
+                key={a.pubkey}
+                className="flex items-center gap-2 px-3 py-1.5 hover:bg-bg-hover cursor-pointer group transition-colors"
+                onClick={() => handleSwitch(a.pubkey)}
+              >
+                <Avatar account={a} />
+                <span className="text-text-muted text-[11px] truncate flex-1">{displayName(a)}</span>
+                <button
+                  onClick={(e) => handleRemove(e, a.pubkey)}
+                  className="text-text-dim hover:text-danger text-[11px] opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Remove account"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+
+            <button
+              onClick={handleAddAccount}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-text-dim hover:text-accent hover:bg-bg-hover text-[11px] transition-colors"
+            >
+              <span className="w-6 text-center text-[12px]">+</span>
+              <span>add account</span>
+            </button>
+          </div>
+        )}
+
+        {/* Current account row */}
+        <div className="px-3 py-2">
+          <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => openProfile(pubkey)}
+            >
+              <Avatar account={current} />
+              <span className="text-text text-[11px] truncate flex-1">{displayName(current)}</span>
+            </div>
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="text-text-dim hover:text-text text-[10px] transition-colors px-0.5"
+              title="Switch account"
+            >
+              {open ? "▲" : "▼"}
+            </button>
+          </div>
+
+          {open && (
+            <div className="flex items-center justify-between mt-1.5">
+              <button
+                onClick={() => { setOpen(false); logout(); }}
+                className="text-text-dim hover:text-danger text-[10px] transition-colors"
+              >
+                sign out
+              </button>
+              <button
+                onClick={() => { setOpen(false); removeAccount(pubkey); }}
+                className="text-text-dim hover:text-danger text-[10px] transition-colors"
+              >
+                remove account
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showAddLogin && <LoginModal onClose={() => setShowAddLogin(false)} />}
+    </>
+  );
+}

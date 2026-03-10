@@ -4,6 +4,31 @@ import { getNDK, publishContactList } from "../lib/nostr";
 import { nip19 } from "@nostr-dev-kit/ndk";
 import { invoke } from "@tauri-apps/api/core";
 
+export interface SavedAccount {
+  pubkey: string;
+  npub: string;
+  name?: string;
+  picture?: string;
+}
+
+function loadSavedAccounts(): SavedAccount[] {
+  try {
+    return JSON.parse(localStorage.getItem("wrystr_accounts") ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function persistAccounts(accounts: SavedAccount[]) {
+  localStorage.setItem("wrystr_accounts", JSON.stringify(accounts));
+}
+
+function upsertAccount(accounts: SavedAccount[], entry: SavedAccount): SavedAccount[] {
+  const idx = accounts.findIndex((a) => a.pubkey === entry.pubkey);
+  if (idx === -1) return [...accounts, entry];
+  return accounts.map((a, i) => (i === idx ? { ...a, ...entry } : a));
+}
+
 interface UserState {
   pubkey: string | null;
   npub: string | null;
@@ -11,11 +36,14 @@ interface UserState {
   follows: string[];
   loggedIn: boolean;
   loginError: string | null;
+  accounts: SavedAccount[];
 
   loginWithNsec: (nsec: string) => Promise<void>;
   loginWithPubkey: (pubkey: string) => Promise<void>;
   logout: () => void;
   restoreSession: () => Promise<void>;
+  switchAccount: (pubkey: string) => Promise<void>;
+  removeAccount: (pubkey: string) => void;
   fetchOwnProfile: () => Promise<void>;
   fetchFollows: () => Promise<void>;
   follow: (pubkey: string) => Promise<void>;
@@ -29,6 +57,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   follows: [],
   loggedIn: false,
   loginError: null,
+  accounts: loadSavedAccounts(),
 
   loginWithNsec: async (nsecInput: string) => {
     try {
@@ -55,9 +84,13 @@ export const useUserStore = create<UserState>((set, get) => ({
       const pubkey = user.pubkey;
       const npub = nip19.npubEncode(pubkey);
 
-      set({ pubkey, npub, loggedIn: true, loginError: null });
+      // Update accounts list
+      const accounts = upsertAccount(get().accounts, { pubkey, npub });
+      persistAccounts(accounts);
 
-      // Persist pubkey for session restoration
+      set({ pubkey, npub, loggedIn: true, loginError: null, accounts });
+
+      // Persist active session
       localStorage.setItem("wrystr_pubkey", pubkey);
       localStorage.setItem("wrystr_login_type", "nsec");
 
@@ -89,7 +122,12 @@ export const useUserStore = create<UserState>((set, get) => ({
       }
 
       const npub = nip19.npubEncode(pubkey);
-      set({ pubkey, npub, loggedIn: true, loginError: null });
+
+      // Update accounts list
+      const accounts = upsertAccount(get().accounts, { pubkey, npub });
+      persistAccounts(accounts);
+
+      set({ pubkey, npub, loggedIn: true, loginError: null, accounts });
 
       localStorage.setItem("wrystr_pubkey", pubkey);
       localStorage.setItem("wrystr_login_type", "pubkey");
@@ -104,10 +142,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   logout: () => {
     const ndk = getNDK();
     ndk.signer = undefined;
-    const { pubkey } = get();
-    if (pubkey) {
-      invoke<void>("delete_nsec", { pubkey }).catch(() => {});
-    }
+    // Don't delete the keychain entry — keep the account available for instant switch-back.
     localStorage.removeItem("wrystr_pubkey");
     localStorage.removeItem("wrystr_login_type");
     set({ pubkey: null, npub: null, profile: null, follows: [], loggedIn: false, loginError: null });
@@ -129,11 +164,42 @@ export const useUserStore = create<UserState>((set, get) => ({
         if (nsec) {
           await get().loginWithNsec(nsec);
         }
-        // If no keychain entry (first run after feature lands, or keychain unavailable),
-        // the user will be prompted to log in again — same as before.
+        // No keychain entry yet → stay logged out, user re-enters nsec once.
       } catch {
         // Keychain unavailable (e.g. no secret service on this Linux session) — stay logged out.
       }
+    }
+  },
+
+  switchAccount: async (pubkey: string) => {
+    // Try nsec from keychain first; fall back to read-only
+    try {
+      const nsec = await invoke<string | null>("load_nsec", { pubkey });
+      if (nsec) {
+        await get().loginWithNsec(nsec);
+        return;
+      }
+    } catch {
+      // Keychain unavailable
+    }
+    await get().loginWithPubkey(pubkey);
+  },
+
+  removeAccount: (pubkey: string) => {
+    // Delete keychain entry (best-effort)
+    invoke<void>("delete_nsec", { pubkey }).catch(() => {});
+
+    const accounts = get().accounts.filter((a) => a.pubkey !== pubkey);
+    persistAccounts(accounts);
+    set({ accounts });
+
+    // If removing the active account, clear the session
+    if (get().pubkey === pubkey) {
+      const ndk = getNDK();
+      ndk.signer = undefined;
+      localStorage.removeItem("wrystr_pubkey");
+      localStorage.removeItem("wrystr_login_type");
+      set({ pubkey: null, npub: null, profile: null, follows: [], loggedIn: false, loginError: null });
     }
   },
 
@@ -146,6 +212,13 @@ export const useUserStore = create<UserState>((set, get) => ({
       const user = ndk.getUser({ pubkey });
       await user.fetchProfile();
       set({ profile: user.profile });
+
+      // Update cached name/picture in accounts list
+      const name = user.profile?.displayName || user.profile?.name;
+      const picture = user.profile?.picture;
+      const accounts = upsertAccount(get().accounts, { pubkey, npub: get().npub!, name, picture });
+      persistAccounts(accounts);
+      set({ accounts });
     } catch {
       // Profile fetch is non-critical
     }

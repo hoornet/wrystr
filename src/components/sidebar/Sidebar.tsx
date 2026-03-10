@@ -1,10 +1,8 @@
-import { useState } from "react";
 import { useUIStore } from "../../stores/ui";
 import { useFeedStore } from "../../stores/feed";
 import { useUserStore } from "../../stores/user";
 import { getNDK } from "../../lib/nostr";
-import { LoginModal } from "../shared/LoginModal";
-import { shortenPubkey } from "../../lib/utils";
+import { AccountSwitcher } from "./AccountSwitcher";
 
 const NAV_ITEMS = [
   { id: "feed" as const, label: "feed", icon: "◈" },
@@ -14,13 +12,9 @@ const NAV_ITEMS = [
 ] as const;
 
 export function Sidebar() {
-  const { currentView, setView, sidebarCollapsed, toggleSidebar, openProfile } = useUIStore();
+  const { currentView, setView, sidebarCollapsed, toggleSidebar } = useUIStore();
   const { connected, notes } = useFeedStore();
-  const { loggedIn, profile, npub, logout } = useUserStore();
-  const [showLogin, setShowLogin] = useState(false);
-
-  const userName = profile?.displayName || profile?.name || (npub ? shortenPubkey(npub) : null);
-  const userAvatar = profile?.picture;
+  const { loggedIn } = useUserStore();
 
   return (
     <>
@@ -74,52 +68,8 @@ export function Sidebar() {
           ))}
         </nav>
 
-        {/* User / Login */}
-        {!sidebarCollapsed && (
-          <div className="border-t border-border shrink-0">
-            {loggedIn ? (
-              <div className="px-3 py-2">
-                <div
-                  className="flex items-center gap-2 mb-1.5 cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => { const { pubkey } = useUserStore.getState(); if (pubkey) openProfile(pubkey); }}
-                >
-                  {userAvatar ? (
-                    <img
-                      src={userAvatar}
-                      alt=""
-                      className="w-6 h-6 rounded-sm object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <div className="w-6 h-6 rounded-sm bg-accent/20 flex items-center justify-center text-accent text-[10px]">
-                      {(userName || "?").charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <span className="text-text text-[11px] truncate flex-1">
-                    {userName}
-                  </span>
-                </div>
-                <button
-                  onClick={logout}
-                  className="text-text-dim hover:text-danger text-[10px] transition-colors"
-                >
-                  logout
-                </button>
-              </div>
-            ) : (
-              <div className="px-3 py-2">
-                <button
-                  onClick={() => setShowLogin(true)}
-                  className="w-full px-2 py-1.5 text-[11px] border border-border text-text-muted hover:text-accent hover:border-accent/40 transition-colors"
-                >
-                  login
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Account switcher */}
+        {!sidebarCollapsed && <AccountSwitcher />}
 
         {/* Status footer */}
         {!sidebarCollapsed && (
@@ -133,7 +83,6 @@ export function Sidebar() {
         )}
       </aside>
 
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
     </>
   );
 }

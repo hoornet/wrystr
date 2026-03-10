@@ -9,7 +9,7 @@ import { NDKEvent } from "@nostr-dev-kit/ndk";
 type FeedTab = "global" | "following";
 
 export function Feed() {
-  const { notes, loading, connected, error, connect, loadFeed } = useFeedStore();
+  const { notes, loading, connected, error, connect, loadCachedFeed, loadFeed } = useFeedStore();
   const { loggedIn, follows } = useUserStore();
 
   const [tab, setTab] = useState<FeedTab>("global");
@@ -17,6 +17,8 @@ export function Feed() {
   const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
+    // Show cached notes immediately, then fetch fresh ones once connected
+    loadCachedFeed();
     connect().then(() => loadFeed());
   }, []);
 

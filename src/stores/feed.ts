@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { NDKEvent } from "@nostr-dev-kit/ndk";
-import { connectToRelays, fetchGlobalFeed } from "../lib/nostr";
+import { connectToRelays, fetchGlobalFeed, getNDK } from "../lib/nostr";
+import { dbLoadFeed, dbSaveNotes } from "../lib/db";
 
 interface FeedState {
   notes: NDKEvent[];
@@ -8,6 +9,7 @@ interface FeedState {
   connected: boolean;
   error: string | null;
   connect: () => Promise<void>;
+  loadCachedFeed: () => Promise<void>;
   loadFeed: () => Promise<void>;
 }
 
@@ -27,12 +29,36 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     }
   },
 
+  loadCachedFeed: async () => {
+    try {
+      const rawNotes = await dbLoadFeed(200);
+      if (rawNotes.length === 0) return;
+      const ndk = getNDK();
+      const events = rawNotes.map((raw) => new NDKEvent(ndk, JSON.parse(raw)));
+      set({ notes: events });
+    } catch {
+      // Cache read failure is non-critical
+    }
+  },
+
   loadFeed: async () => {
     if (get().loading) return;
     set({ loading: true, error: null });
     try {
-      const notes = await fetchGlobalFeed(80);
-      set({ notes, loading: false });
+      const fresh = await fetchGlobalFeed(80);
+
+      // Merge with currently displayed notes so cached notes aren't lost
+      // if the relay returns fewer results than the cache had.
+      const freshIds = new Set(fresh.map((n) => n.id));
+      const kept = get().notes.filter((n) => !freshIds.has(n.id));
+      const merged = [...fresh, ...kept]
+        .sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
+        .slice(0, 200);
+
+      set({ notes: merged, loading: false });
+
+      // Persist fresh notes to SQLite (fire-and-forget)
+      dbSaveNotes(fresh.map((e) => JSON.stringify(e.rawEvent())));
     } catch (err) {
       set({ error: `Feed failed: ${err}`, loading: false });
     }

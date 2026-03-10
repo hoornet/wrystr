@@ -66,6 +66,12 @@ jobs:
 
             Cross-platform Nostr desktop client — polished UI, deep Lightning integration, first-class long-form writing.
 
+            ### New in 0.1.5
+            - **Article reader** — click any `nostr:naddr1…` link or long-form article reference to open it in a clean reader with cover image, author, tags, and full markdown content; zap the author inline
+            - **Zap counts on notes** — ⚡ N sats shown on each note; visible to logged-out users too
+            - **Quoted note preview** — `nostr:note1…` and `nostr:nevent1…` references render as inline bordered cards with author and content preview; click to open thread
+            - **Auto-updater** — "Update & restart" banner appears when a new version is available; installs and relaunches automatically
+
             ### New in 0.1.4
             - **Sidebar** — explicit ‹/› collapse toggle always visible; collapsed state persisted across restarts; nav icons + tooltips in collapsed mode
             - **Profile image upload** — "upload" button next to picture/banner fields; uploads to nostr.build, auto-fills URL

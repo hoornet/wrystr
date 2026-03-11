@@ -81,6 +81,12 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 - Suggest popular accounts and curated starter packs
 - "People followed by people you follow" as a discovery surface
 
+### 14. Language / alphabet feed filter
+- Feature request from Windows playtest (2026-03-11): filter feed to specific languages or scripts
+- Could be client-side: detect script via Unicode block ranges, offer toggle in settings
+- Or server-side: NIP-50 `language` tag support if relays implement it
+- Low effort client-side version: filter by Unicode script (Latin, Cyrillic, CJK, Arabic, etc.)
+
 ### 13. UI polish pass
 - Full design review: note cards, thread view, profile header, modals
 - Target bar: Telegram Desktop — fast, keyboard-navigable, feels native not webby
@@ -109,6 +115,13 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 ---
 
 ## What's already shipped
+
+### v0.1.8
+- **Fix: account switch broken** — `switchAccount` now checks the signer was actually set before returning; falls back to read-only instead of silently doing nothing; always navigates to feed after switch
+- **Fix: "Not logged in" on profile edit** — edit button hidden when signed in read-only (npub); read-only badge shown in profile header
+- **Sidebar version number** — `v0.1.8` shown below WRYSTR brand, auto-tracked from package.json
+- **Support page QR spacing** — Lightning and Bitcoin QR codes have more breathing room (`gap-16`)
+- **ROADMAP: language filter** added to Phase 3 backlog
 
 ### v0.1.7
 - **Per-account Lightning wallet** — NWC URI stored per-pubkey; switching accounts loads the correct wallet automatically

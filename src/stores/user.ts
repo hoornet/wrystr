@@ -5,6 +5,7 @@ import { nip19 } from "@nostr-dev-kit/ndk";
 import { invoke } from "@tauri-apps/api/core";
 import { useMuteStore } from "./mute";
 import { useLightningStore } from "./lightning";
+import { useUIStore } from "./ui";
 
 export interface SavedAccount {
   pubkey: string;
@@ -184,17 +185,23 @@ export const useUserStore = create<UserState>((set, get) => ({
   switchAccount: async (pubkey: string) => {
     // Clear signer immediately — no window where old account could sign
     getNDK().signer = undefined;
+    let succeeded = false;
     // Try nsec from keychain first; fall back to read-only
     try {
       const nsec = await invoke<string | null>("load_nsec", { pubkey });
       if (nsec) {
         await get().loginWithNsec(nsec);
-        return;
+        // Only consider it a success if signer was actually set
+        succeeded = !!getNDK().signer;
       }
     } catch {
       // Keychain unavailable
     }
-    await get().loginWithPubkey(pubkey);
+    if (!succeeded) {
+      await get().loginWithPubkey(pubkey);
+    }
+    // Always land on feed to avoid stale UI from previous account's view
+    useUIStore.getState().setView("feed");
   },
 
   removeAccount: (pubkey: string) => {

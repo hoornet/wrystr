@@ -1,6 +1,7 @@
 import { useState } from "react";
 import QRCode from "react-qr-code";
 import { ZapModal } from "../zap/ZapModal";
+import pkg from "../../../package.json";
 
 const DEV_NPUB   = "npub1ezt7xcq87ljj65jkjsuagwll4yp75tacgkuyjdhkw6mza8j3azfq2vrvl6";
 const DEV_PUBKEY = "c897e36007f7e52d52569439d43bffa903ea2fb845b84936f676b62e9e51e892";
@@ -74,7 +75,7 @@ export function AboutView() {
         {/* QR codes */}
         <section className="mb-8">
           <h2 className="text-text-dim text-[10px] uppercase tracking-widest mb-4">Scan to send</h2>
-          <div className="flex flex-wrap gap-8">
+          <div className="flex flex-wrap gap-16">
             <div>
               <div className="text-text-muted text-[11px] mb-2">Lightning</div>
               <QRBlock value={`lightning:${LIGHTNING_ADDRESS}`} label={LIGHTNING_ADDRESS} />
@@ -129,7 +130,7 @@ export function AboutView() {
         {/* Version / About */}
         <section className="border-t border-border pt-6">
           <div className="text-text-dim text-[11px] space-y-1">
-            <div>Wrystr v0.1.1 — MIT license</div>
+            <div>Wrystr v{pkg.version} — MIT license</div>
             <div>
               Built with{" "}
               <a href="https://tauri.app" target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent-hover transition-colors">Tauri</a>

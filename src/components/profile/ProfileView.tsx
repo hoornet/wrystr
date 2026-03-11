@@ -4,7 +4,7 @@ import { useUIStore } from "../../stores/ui";
 import { useUserStore } from "../../stores/user";
 import { useMuteStore } from "../../stores/mute";
 import { useProfile, invalidateProfileCache } from "../../hooks/useProfile";
-import { fetchUserNotes, publishProfile } from "../../lib/nostr";
+import { fetchUserNotes, publishProfile, getNDK } from "../../lib/nostr";
 import { shortenPubkey } from "../../lib/utils";
 import { uploadImage } from "../../lib/upload";
 import { NoteCard } from "../feed/NoteCard";
@@ -272,8 +272,13 @@ export function ProfileView() {
             ← {editing ? "cancel" : "back"}
           </button>
           <h1 className="text-text text-sm font-medium">{isOwn ? "Your Profile" : "Profile"}</h1>
+          {isOwn && !getNDK().signer && (
+            <span className="text-text-dim text-[10px] border border-border px-2 py-0.5">
+              read-only
+            </span>
+          )}
         </div>
-        {isOwn && !editing && (
+        {isOwn && !editing && !!getNDK().signer && (
           <button
             onClick={() => setEditing(true)}
             className="text-[11px] px-3 py-1 border border-border text-text-muted hover:text-accent hover:border-accent/40 transition-colors"

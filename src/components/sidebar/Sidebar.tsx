@@ -3,6 +3,7 @@ import { useFeedStore } from "../../stores/feed";
 import { useUserStore } from "../../stores/user";
 import { getNDK } from "../../lib/nostr";
 import { AccountSwitcher } from "./AccountSwitcher";
+import pkg from "../../../package.json";
 
 const NAV_ITEMS = [
   { id: "feed" as const, label: "feed", icon: "◈" },
@@ -41,7 +42,10 @@ export function Sidebar() {
         ) : (
           /* Expanded: brand on left, collapse chevron on right */
           <>
-            <span className="text-sm font-bold tracking-widest text-text select-none">WRYSTR</span>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold tracking-widest text-text select-none">WRYSTR</span>
+              <span className="text-text-dim text-[9px] font-mono opacity-50">v{pkg.version}</span>
+            </div>
             <button
               onClick={toggleSidebar}
               title="Collapse sidebar"

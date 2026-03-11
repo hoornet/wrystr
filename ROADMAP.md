@@ -20,36 +20,19 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 
 ---
 
-## Phase 1 — Complete the core experience
-*Target: OpenSats application (April 1, 2026). Test on all platforms before Phase 2.*
+## Phase 1 — Complete the core experience ✓ COMPLETE
 
-### 1. Long-form article reader (NIP-23)
-- We write articles but can't read them in-app — the single biggest gap given our positioning
-- Click any `nostr:naddr1…` reference or article link → open in a clean reader view
-- Render markdown, show title / author / published date / cover image
-- Zap button on articles (zap the author)
-- "Open in browser" fallback for unsupported content
+*Shipped in v0.1.5. Tested on Windows (v0.1.7 fixes applied). Ready for OpenSats application (April 1, 2026).*
 
-### 2. Zap counts on notes
-- Feed shows ♥ reaction counts but not ⚡ zap counts — a visible gap
-- Fetch kind 9735 receipts per note, sum the amounts, show inline
-- Existing zap infrastructure (NIP-47 + NIP-57) already built — display-layer only
-
-### 3. Quoted note inline preview
-- Quotes currently render `nostr:nevent1…` as plain linked text
-- Should show an inline card: author avatar, name, truncated content — same as other clients
-- Completes the NIP-18 quote/repost work already shipped
-
-### 4. Auto-updater
-- Users must manually download new releases — most will stay on old versions forever
-- Tauri has a built-in updater plugin (`tauri-plugin-updater`)
-- Needs a signed update manifest served from GitHub Releases
-- Show an unobtrusive "update available" banner, not a blocking modal
+- ✓ Long-form article reader (NIP-23) — `nostr:naddr1…` links open in-app reader
+- ✓ Zap counts on notes — ⚡ N sats inline on every note
+- ✓ Quoted note inline preview — `nostr:note1…` / `nostr:nevent1…` render as inline cards
+- ✓ Auto-updater — "Update & restart" banner via tauri-plugin-updater
 
 ---
 
 ## Phase 2 — Engagement & reach
-*Test Phase 1 thoroughly first. Fix all reported issues before starting Phase 2.*
+*Test v0.1.7 on Windows first. Fix any issues before starting.*
 
 ### 5. Notifications
 - No way to see mentions, replies to own notes, or incoming DMs without manually checking
@@ -127,6 +110,32 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 
 ## What's already shipped
 
+### v0.1.7
+- **Per-account Lightning wallet** — NWC URI stored per-pubkey; switching accounts loads the correct wallet automatically
+- **New account creation in-app** — "Add account" → "New account" tab generates a fresh keypair inline
+- **Zap button on thread root note** — like and zap the main post in a thread view
+- **Conditional zap button** — ⚡ only shown for profiles that have a Lightning address (lud16/lud06)
+- **Image paste in compose** — paste clipboard image → auto-uploads to nostr.build, inserts URL at cursor
+- **Account switcher redesign** — larger active account avatar, sign-out/remove in dropdown only
+- **GitHub Sponsors link** in Support page
+- Fix: signer cleared before account switch — eliminates race where old account could sign outgoing events
+
+### v0.1.6
+- **Linux packaging** — ships `.deb` (Ubuntu/Debian/Mint) and `.rpm` (Fedora/openSUSE) instead of AppImage
+- Arch / Manjaro: `PKGBUILD` in repo root — builds from source via git tag
+
+### v0.1.5
+- **Long-form article reader** (NIP-23) — click any `nostr:naddr1…` to open in-app reader with markdown, cover image, author, tags; zap the author inline
+- **Zap counts on notes** — ⚡ N sats shown inline on each note
+- **Quoted note inline preview** — `nostr:note1…` / `nostr:nevent1…` render as bordered inline cards; click to open thread
+- **Auto-updater** — "Update & restart" banner via tauri-plugin-updater + GitHub Releases manifest
+
+### v0.1.4
+- **Sidebar** — explicit ‹/› toggle, state persisted, collapsed mode completeness
+- **Profile image upload** — uploads to nostr.build, auto-fills URL field
+- **NIP-05 live verification** — real-time domain check with ✓/✗ status
+- **Search improvements** — NIP-50 relay detection, hashtag fallback suggestion
+
 ### v0.1.3
 - **OS keychain** — nsec stored securely; sessions survive restarts
 - **Multi-account switcher** — sidebar footer, instant switch, keychain-backed
@@ -137,16 +146,7 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 - **System tray** — close hides to tray; Quit in tray menu exits
 - **Zap history** — Received / Sent tabs with amounts, counterparts, comments
 - **About / Support page** — in-app zap, Lightning + Bitcoin QR codes
-
-### v0.1.4
-- **Sidebar** — explicit ‹/› toggle, state persisted, collapsed mode completeness
-- **Profile image upload** — uploads to nostr.build, auto-fills URL field
-- **NIP-05 live verification** — real-time domain check with ✓/✗ status
-- **Search improvements** — NIP-50 relay detection, hashtag fallback suggestion
-
-### v0.1.x (unreleased — on main)
-- **Direct Messages** (NIP-04) — conversation list, thread view, per-message decryption,
-  new conversation by npub/hex, "✉ message" button on profiles
+- **Direct Messages** (NIP-04) — conversation list, thread view, per-message decryption
 
 ### Shipped earlier (v0.1.0 – v0.1.2)
 - Onboarding (key generation, nsec backup, plain-language UX)
@@ -159,4 +159,3 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 - Search: NIP-50 full-text, #hashtag, people with inline follow
 - Relay management with live connection status
 - Read-only (npub) login mode
-- GitHub Actions release: Linux AppImage, Windows exe/msi, macOS ARM + Intel dmg

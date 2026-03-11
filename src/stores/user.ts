@@ -14,6 +14,12 @@ export interface SavedAccount {
   picture?: string;
 }
 
+// In-memory signer cache — survives account switches within a session.
+// Keyed by pubkey hex. NOT persisted to localStorage; rebuilt on next login.
+// This means the keychain is only ever consulted at startup (restoreSession),
+// not on every switch, eliminating the "read-only after switch" class of bugs.
+const _signerCache = new Map<string, NDKPrivateKeySigner>();
+
 function loadSavedAccounts(): SavedAccount[] {
   try {
     return JSON.parse(localStorage.getItem("wrystr_accounts") ?? "[]");
@@ -86,6 +92,9 @@ export const useUserStore = create<UserState>((set, get) => ({
       const user = await signer.user();
       const pubkey = user.pubkey;
       const npub = nip19.npubEncode(pubkey);
+
+      // Cache signer in memory so switchAccount can reuse it without keychain
+      _signerCache.set(pubkey, signer);
 
       // Update accounts list
       const accounts = upsertAccount(get().accounts, { pubkey, npub });
@@ -185,13 +194,32 @@ export const useUserStore = create<UserState>((set, get) => ({
   switchAccount: async (pubkey: string) => {
     // Clear signer immediately — no window where old account could sign
     getNDK().signer = undefined;
+
+    // Fast path: reuse in-memory signer cached from the login that added this
+    // account earlier in this session. Avoids a round-trip to the OS keychain
+    // and eliminates the "becomes read-only after switch" failure class.
+    const cachedSigner = _signerCache.get(pubkey);
+    if (cachedSigner) {
+      getNDK().signer = cachedSigner;
+      const account = get().accounts.find((a) => a.pubkey === pubkey);
+      const npub = account?.npub ?? nip19.npubEncode(pubkey);
+      set({ pubkey, npub, loggedIn: true, loginError: null });
+      localStorage.setItem("wrystr_pubkey", pubkey);
+      localStorage.setItem("wrystr_login_type", "nsec");
+      useLightningStore.getState().loadNwcForAccount(pubkey);
+      get().fetchOwnProfile();
+      get().fetchFollows();
+      useMuteStore.getState().fetchMuteList(pubkey);
+      useUIStore.getState().setView("feed");
+      return;
+    }
+
+    // Slow path: cache miss (first session after restart) — try OS keychain
     let succeeded = false;
-    // Try nsec from keychain first; fall back to read-only
     try {
       const nsec = await invoke<string | null>("load_nsec", { pubkey });
       if (nsec) {
         await get().loginWithNsec(nsec);
-        // Only consider it a success if signer was actually set
         succeeded = !!getNDK().signer;
       }
     } catch {

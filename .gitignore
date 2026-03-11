@@ -17,6 +17,7 @@ dist-ssr
 
 # Private / not for public repo
 OPENSATS_APPLICATION.md
+test/accounts.json
 
 # Editor directories and files
 .vscode/*

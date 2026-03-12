@@ -19,7 +19,7 @@ jobs:
             args: ''
           - platform: macos-latest
             args: '--target aarch64-apple-darwin'
-          - platform: macos-12
+          - platform: macos-13
             args: '--target x86_64-apple-darwin'
 
     runs-on: ${{ matrix.platform }}
@@ -65,6 +65,19 @@ jobs:
             ## Wrystr ${{ github.ref_name }}
 
             Cross-platform Nostr desktop client — polished UI, deep Lightning integration, first-class long-form writing.
+
+            > **Windows note:** The installer is not yet code-signed. Windows SmartScreen will show an "Unknown publisher" warning — click "More info → Run anyway" to install.
+
+            ### New in v0.2.1
+            - **Fix: repost + quote in thread view** — thread view now shows repost and quote buttons on the root note (they were already on feed notes but were missing in threads)
+            - **Fix: login persistence after Windows update** — nsec accounts whose keychain entry was lost after an OS update now stay logged out (login button visible) instead of silently becoming read-only
+
+            ### New in v0.2.0 — Phase 2: Engagement & Reach
+            - **Feed reply context** — replies show "↩ replying to @name" above the note; click to open the parent thread
+            - **NIP-65 outbox model** — reads kind 10002 relay lists so you see notes from people who publish to their own relays; "Publish relay list to Nostr" button in Settings
+            - **Notifications view** — 🔔 sidebar nav item; lists recent mentions with unread badge; badge clears on open
+            - **DM unread badge** — messages nav item shows count of conversations with new messages; clears when conversation is opened
+            - **Keyboard shortcuts** — `n` focus compose, `/` focus search, `j`/`k` navigate feed with highlight, `Esc` go back, `?` help overlay
 
             ### New in 0.1.7
             - **Per-account Lightning wallet** — NWC connection is now stored per account; switching accounts loads the correct wallet automatically

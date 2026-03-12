@@ -13,6 +13,7 @@ export interface SavedAccount {
   npub: string;
   name?: string;
   picture?: string;
+  loginType?: "nsec" | "pubkey";
 }
 
 // In-memory signer cache — survives account switches within a session.
@@ -98,7 +99,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       _signerCache.set(pubkey, signer);
 
       // Update accounts list
-      const accounts = upsertAccount(get().accounts, { pubkey, npub });
+      const accounts = upsertAccount(get().accounts, { pubkey, npub, loginType: "nsec" });
       persistAccounts(accounts);
 
       set({ pubkey, npub, loggedIn: true, loginError: null, accounts });
@@ -142,7 +143,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       const npub = nip19.npubEncode(pubkey);
 
       // Update accounts list
-      const accounts = upsertAccount(get().accounts, { pubkey, npub });
+      const accounts = upsertAccount(get().accounts, { pubkey, npub, loginType: "pubkey" });
       persistAccounts(accounts);
 
       set({ pubkey, npub, loggedIn: true, loginError: null, accounts });
@@ -229,7 +230,13 @@ export const useUserStore = create<UserState>((set, get) => ({
       // Keychain unavailable
     }
     if (!succeeded) {
-      await get().loginWithPubkey(pubkey);
+      const account = get().accounts.find((a) => a.pubkey === pubkey);
+      if (account?.loginType === "pubkey") {
+        // Deliberately read-only (npub) account — correct behavior
+        await get().loginWithPubkey(pubkey);
+      }
+      // else: nsec account whose keychain entry was lost.
+      // Stay logged out; user sees AccountSwitcher "login" button to re-enter nsec.
     }
     // Always land on feed to avoid stale UI from previous account's view
     useUIStore.getState().setView("feed");

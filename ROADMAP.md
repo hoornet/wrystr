@@ -96,9 +96,18 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 - Sign events via a remote signer (Nsecbunker, Amber, etc.)
 - Would complete the multi-account story for users who don't want nsec in keychain
 
+### NIP-05 monetization (Phase 4 idea)
+- Offer a paid "Verified NIP-05 name" service (e.g. name@wrystr.app)
+- Would need a backend + domain; Wrystr talks to it; users pay sats via Lightning
+- Free tier: self-hosted as today; paid tier: managed registration
+
 ---
 
 ## What's already shipped
+
+### v0.2.1 — Batch 3 playtest fixes
+- **Fix: repost + quote in thread view** — root note in thread view now shows repost and quote buttons (parity with feed cards)
+- **Fix: login persistence after Windows update** — nsec accounts with a lost keychain entry now stay logged out (login button visible) instead of silently going read-only
 
 ### v0.2.0 — Phase 2: Engagement & Reach
 - **Feed reply context** — replies show "↩ replying to @name" above the note; click to open the parent thread

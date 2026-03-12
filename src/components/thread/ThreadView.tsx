@@ -5,7 +5,8 @@ import { useUserStore } from "../../stores/user";
 import { useProfile } from "../../hooks/useProfile";
 import { useReactionCount } from "../../hooks/useReactionCount";
 import { useZapCount } from "../../hooks/useZapCount";
-import { fetchReplies, publishReaction, publishReply, getNDK } from "../../lib/nostr";
+import { fetchReplies, publishReaction, publishReply, publishRepost, getNDK } from "../../lib/nostr";
+import { QuoteModal } from "../feed/QuoteModal";
 import { shortenPubkey, timeAgo } from "../../lib/utils";
 import { NoteContent } from "../feed/NoteContent";
 import { NoteCard } from "../feed/NoteCard";
@@ -27,6 +28,9 @@ function RootNote({ event }: { event: NDKEvent }) {
   });
   const [liking, setLiking] = useState(false);
   const [showZap, setShowZap] = useState(false);
+  const [reposting, setReposting] = useState(false);
+  const [reposted, setReposted] = useState(false);
+  const [showQuote, setShowQuote] = useState(false);
   const hasLightning = !!(profile?.lud16 || profile?.lud06);
 
   const handleLike = async () => {
@@ -41,6 +45,17 @@ function RootNote({ event }: { event: NDKEvent }) {
       adjustReactionCount(1);
     } finally {
       setLiking(false);
+    }
+  };
+
+  const handleRepost = async () => {
+    if (reposting || reposted) return;
+    setReposting(true);
+    try {
+      await publishRepost(event);
+      setReposted(true);
+    } finally {
+      setReposting(false);
     }
   };
 
@@ -79,6 +94,21 @@ function RootNote({ event }: { event: NDKEvent }) {
           >
             {liked ? "♥" : "♡"}{reactionCount !== null && reactionCount > 0 ? ` ${reactionCount}` : liked ? " liked" : " like"}
           </button>
+          <button
+            onClick={handleRepost}
+            disabled={reposting || reposted}
+            className={`text-[11px] transition-colors disabled:cursor-default ${
+              reposted ? "text-accent" : "text-text-dim hover:text-accent"
+            }`}
+          >
+            {reposted ? "reposted ✓" : reposting ? "…" : "repost"}
+          </button>
+          <button
+            onClick={() => setShowQuote(true)}
+            className="text-[11px] text-text-dim hover:text-text transition-colors"
+          >
+            quote
+          </button>
           {hasLightning && (
             <button
               onClick={() => setShowZap(true)}
@@ -97,6 +127,15 @@ function RootNote({ event }: { event: NDKEvent }) {
           target={{ type: "note", event, recipientPubkey: event.pubkey }}
           recipientName={name}
           onClose={() => setShowZap(false)}
+        />
+      )}
+
+      {showQuote && (
+        <QuoteModal
+          event={event}
+          authorName={name}
+          authorAvatar={avatar}
+          onClose={() => setShowQuote(false)}
         />
       )}
     </div>

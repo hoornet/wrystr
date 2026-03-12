@@ -66,8 +66,8 @@ jobs:
 
             > **Windows note:** The installer is not yet code-signed. Windows SmartScreen will show an "Unknown publisher" warning — click "More info → Run anyway" to install.
 
-            ### New in v0.2.2
-            - **Fix: auto-updater** — `latest.json` now correctly generated; users on v0.2.1 will receive the update banner
+            ### New in v0.2.3
+            - **Fix: auto-updater** — `latest.json` now correctly generated via `includeUpdaterJson: true`; users on older versions will receive the update banner
 
             ### New in v0.2.0 — Phase 2: Engagement & Reach
             - **Feed reply context** — replies show "↩ replying to @name" above the note; click to open the parent thread
@@ -128,4 +128,5 @@ jobs:
             ⚡ Find Wrystr useful? [Zap the developer](https://github.com/hoornet/wrystr#support) or star the repo.
           releaseDraft: false
           prerelease: false
+          includeUpdaterJson: true
           args: ${{ matrix.args }}

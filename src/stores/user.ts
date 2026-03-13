@@ -7,6 +7,7 @@ import { useMuteStore } from "./mute";
 import { useLightningStore } from "./lightning";
 import { useUIStore } from "./ui";
 import { useNotificationsStore } from "./notifications";
+import { useFeedStore } from "./feed";
 
 export interface SavedAccount {
   pubkey: string;
@@ -121,6 +122,10 @@ export const useUserStore = create<UserState>((set, get) => ({
       get().fetchFollows();
       useMuteStore.getState().fetchMuteList(pubkey);
       useNotificationsStore.getState().fetchNotifications(pubkey);
+
+      // Navigate to feed and refresh so the new account's content loads
+      useUIStore.getState().setView("feed");
+      useFeedStore.getState().loadFeed();
     } catch (err) {
       set({ loginError: `Login failed: ${err}` });
     }
@@ -160,6 +165,9 @@ export const useUserStore = create<UserState>((set, get) => ({
       get().fetchFollows();
       useMuteStore.getState().fetchMuteList(pubkey);
       useNotificationsStore.getState().fetchNotifications(pubkey);
+
+      useUIStore.getState().setView("feed");
+      useFeedStore.getState().loadFeed();
     } catch (err) {
       set({ loginError: `Login failed: ${err}` });
     }

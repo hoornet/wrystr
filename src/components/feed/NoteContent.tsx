@@ -173,7 +173,7 @@ function tryOpenNostrEntity(raw: string): boolean {
 
 function QuotePreview({ eventId }: { eventId: string }) {
   const [event, setEvent] = useState<NDKEvent | null>(null);
-  const { openThread } = useUIStore();
+  const { openThread, currentView } = useUIStore();
   const profile = useProfile(event?.pubkey ?? "");
 
   useEffect(() => {
@@ -189,7 +189,7 @@ function QuotePreview({ eventId }: { eventId: string }) {
   return (
     <div
       className="mt-2 border border-border bg-bg-raised px-3 py-2 cursor-pointer hover:bg-bg-hover transition-colors"
-      onClick={(e) => { e.stopPropagation(); openThread(event, "feed"); }}
+      onClick={(e) => { e.stopPropagation(); openThread(event, currentView as "feed" | "profile"); }}
     >
       <div className="flex items-center gap-2 mb-1">
         {profile?.picture && (

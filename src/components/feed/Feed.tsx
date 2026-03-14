@@ -2,19 +2,17 @@ import { useEffect, useState } from "react";
 import { useFeedStore } from "../../stores/feed";
 import { useUserStore } from "../../stores/user";
 import { useMuteStore } from "../../stores/mute";
+import { useUIStore } from "../../stores/ui";
 import { fetchFollowFeed, getNDK } from "../../lib/nostr";
 import { NoteCard } from "./NoteCard";
 import { ComposeBox } from "./ComposeBox";
 import { NDKEvent } from "@nostr-dev-kit/ndk";
 
-type FeedTab = "global" | "following";
-
 export function Feed() {
   const { notes, loading, connected, error, connect, loadCachedFeed, loadFeed, focusedNoteIndex } = useFeedStore();
   const { loggedIn, follows } = useUserStore();
   const { mutedPubkeys } = useMuteStore();
-
-  const [tab, setTab] = useState<FeedTab>("global");
+  const { feedTab: tab, setFeedTab: setTab } = useUIStore();
   const [followNotes, setFollowNotes] = useState<NDKEvent[]>([]);
   const [followLoading, setFollowLoading] = useState(false);
 

@@ -191,7 +191,7 @@ export function NoteCard({ event, focused }: NoteCardProps) {
                 onClick={async (e) => {
                   e.stopPropagation();
                   const parent = await fetchNoteById(parentEventId);
-                  if (parent) openThread(parent, "feed");
+                  if (parent) openThread(parent, currentView as "feed" | "profile");
                 }}
                 className="hover:text-accent transition-colors"
               >

@@ -11,6 +11,9 @@ depends=(
     'gtk3'
     'libayatana-appindicator'
     'openssl'
+    'gst-plugins-base'
+    'gst-plugins-good'
+    'gst-libav'
 )
 makedepends=(
     'rust'

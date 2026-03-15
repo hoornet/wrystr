@@ -28,6 +28,18 @@ export const useFeedStore = create<FeedState>((set, get) => ({
       set({ error: null });
       await connectToRelays();
       set({ connected: true });
+
+      // Monitor relay connectivity — update status if all relays disconnect
+      const ndk = getNDK();
+      const checkConnection = () => {
+        const relays = Array.from(ndk.pool?.relays?.values() ?? []);
+        const hasConnected = relays.some((r) => r.connected);
+        if (get().connected !== hasConnected) {
+          set({ connected: hasConnected });
+        }
+      };
+      // Re-check periodically (relay reconnects, disconnects)
+      setInterval(checkConnection, 5000);
     } catch (err) {
       set({ error: `Connection failed: ${err}` });
     }

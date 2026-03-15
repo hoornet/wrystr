@@ -19,6 +19,18 @@ Grab the latest release from the [Releases page](https://github.com/hoornet/wrys
 
 **Windows note:** The installer is not yet code-signed. Windows SmartScreen will show an "Unknown publisher" warning — click "More info → Run anyway" to install.
 
+**Linux note:** Video and audio playback requires GStreamer codec packages. The AUR package installs these automatically. For `.deb`/`.rpm` installs, you may need:
+```bash
+# Arch / Manjaro
+sudo pacman -S gst-plugins-base gst-plugins-good gst-libav
+
+# Ubuntu / Debian
+sudo apt install gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-libav
+
+# Fedora
+sudo dnf install gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-libav
+```
+
 ## Features
 
 **Identity & accounts**

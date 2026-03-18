@@ -5,181 +5,108 @@ import { fetchNoteById } from "../../lib/nostr";
 import { useProfile } from "../../hooks/useProfile";
 import { shortenPubkey } from "../../lib/utils";
 import { ImageLightbox } from "../shared/ImageLightbox";
+import { parseContent } from "../../lib/parsing";
 
-// Regex patterns
-const URL_REGEX = /https?:\/\/[^\s<>"')\]]+/g;
-const IMAGE_EXTENSIONS = /\.(jpg|jpeg|png|gif|webp|svg)(\?[^\s]*)?$/i;
-const VIDEO_EXTENSIONS = /\.(mp4|webm|mov|ogg|m4v|avi)(\?[^\s]*)?$/i;
-const AUDIO_EXTENSIONS = /\.(mp3|wav|flac|aac|m4a|opus|ogg)(\?[^\s]*)?$/i;
-const YOUTUBE_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-const TIDAL_REGEX = /tidal\.com\/(?:browse\/)?(?:track|album|playlist)\/([a-zA-Z0-9-]+)/;
-const SPOTIFY_REGEX = /open\.spotify\.com\/(track|album|playlist|episode|show)\/([a-zA-Z0-9]+)/;
-const VIMEO_REGEX = /vimeo\.com\/(\d+)/;
-const NOSTR_MENTION_REGEX = /nostr:(npub1[a-z0-9]+|note1[a-z0-9]+|nevent1[a-z0-9]+|nprofile1[a-z0-9]+|naddr1[a-z0-9]+)/g;
-const HASHTAG_REGEX = /(?<=\s|^)#(\w{2,})/g;
+function ImageGrid({ images, onImageClick }: { images: string[]; onImageClick: (index: number) => void }) {
+  const count = images.length;
+  if (count === 0) return null;
 
-interface ContentSegment {
-  type: "text" | "link" | "image" | "video" | "audio" | "youtube" | "vimeo" | "spotify" | "tidal" | "mention" | "hashtag" | "quote";
-  value: string;  // for "quote": the hex event ID
-  display?: string;
-  mediaId?: string;       // video/embed ID for youtube/vimeo
-  mediaType?: string;     // e.g. "track", "album" for spotify/tidal
+  const maxVisible = Math.min(count, 4);
+  const extraCount = count - 4;
+  const visible = images.slice(0, maxVisible);
+
+  if (count === 1) {
+    return (
+      <div className="mt-2">
+        <img
+          src={images[0]}
+          alt=""
+          loading="lazy"
+          className="max-w-full max-h-80 rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in"
+          onClick={(e) => { e.stopPropagation(); onImageClick(0); }}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+      </div>
+    );
+  }
+
+  if (count === 2) {
+    return (
+      <div className="mt-2 grid grid-cols-2 gap-1">
+        {visible.map((src, idx) => (
+          <img
+            key={idx}
+            src={src}
+            alt=""
+            loading="lazy"
+            className="w-full aspect-[4/3] rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in"
+            onClick={(e) => { e.stopPropagation(); onImageClick(idx); }}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (count === 3) {
+    return (
+      <div className="mt-2 grid grid-cols-2 grid-rows-2 gap-1" style={{ gridTemplateRows: "1fr 1fr" }}>
+        <img
+          src={visible[0]}
+          alt=""
+          loading="lazy"
+          className="w-full h-full rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in row-span-2"
+          style={{ aspectRatio: "3/4" }}
+          onClick={(e) => { e.stopPropagation(); onImageClick(0); }}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+        <img
+          src={visible[1]}
+          alt=""
+          loading="lazy"
+          className="w-full aspect-[4/3] rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in"
+          onClick={(e) => { e.stopPropagation(); onImageClick(1); }}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+        <img
+          src={visible[2]}
+          alt=""
+          loading="lazy"
+          className="w-full aspect-[4/3] rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in"
+          onClick={(e) => { e.stopPropagation(); onImageClick(2); }}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+      </div>
+    );
+  }
+
+  // 4+ images: 2x2 grid with "+N more" overlay on 4th
+  return (
+    <div className="mt-2 grid grid-cols-2 gap-1">
+      {visible.map((src, idx) => (
+        <div key={idx} className="relative">
+          <img
+            src={src}
+            alt=""
+            loading="lazy"
+            className="w-full aspect-[4/3] rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in"
+            onClick={(e) => { e.stopPropagation(); onImageClick(idx); }}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+          {idx === 3 && extraCount > 0 && (
+            <div
+              className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-sm cursor-zoom-in"
+              onClick={(e) => { e.stopPropagation(); onImageClick(idx); }}
+            >
+              <span className="text-white text-lg font-semibold">+{extraCount}</span>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
 
-function parseContent(content: string): ContentSegment[] {
-  const segments: ContentSegment[] = [];
-  const allMatches: { index: number; length: number; segment: ContentSegment }[] = [];
-
-  // Find URLs
-  let match: RegExpExecArray | null;
-  const urlRegex = new RegExp(URL_REGEX.source, "g");
-  while ((match = urlRegex.exec(content)) !== null) {
-    const url = match[0];
-    // Clean trailing punctuation that's likely not part of the URL
-    const cleaned = url.replace(/[.,;:!?)]+$/, "");
-
-    if (IMAGE_EXTENSIONS.test(cleaned)) {
-      allMatches.push({
-        index: match.index,
-        length: cleaned.length,
-        segment: { type: "image", value: cleaned },
-      });
-    } else if (VIDEO_EXTENSIONS.test(cleaned)) {
-      allMatches.push({
-        index: match.index,
-        length: cleaned.length,
-        segment: { type: "video", value: cleaned },
-      });
-    } else if (AUDIO_EXTENSIONS.test(cleaned)) {
-      allMatches.push({
-        index: match.index,
-        length: cleaned.length,
-        segment: { type: "audio", value: cleaned },
-      });
-    } else {
-      // Check for embeddable media URLs
-      const ytMatch = cleaned.match(YOUTUBE_REGEX);
-      const vimeoMatch = cleaned.match(VIMEO_REGEX);
-      const spotifyMatch = cleaned.match(SPOTIFY_REGEX);
-      const tidalMatch = cleaned.match(TIDAL_REGEX);
-
-      if (ytMatch) {
-        allMatches.push({
-          index: match.index,
-          length: cleaned.length,
-          segment: { type: "youtube", value: cleaned, mediaId: ytMatch[1] },
-        });
-      } else if (vimeoMatch) {
-        allMatches.push({
-          index: match.index,
-          length: cleaned.length,
-          segment: { type: "vimeo", value: cleaned, mediaId: vimeoMatch[1] },
-        });
-      } else if (spotifyMatch) {
-        allMatches.push({
-          index: match.index,
-          length: cleaned.length,
-          segment: { type: "spotify", value: cleaned, mediaType: spotifyMatch[1], mediaId: spotifyMatch[2] },
-        });
-      } else if (tidalMatch) {
-        // Extract the type (track/album/playlist) from the URL
-        const tidalTypeMatch = cleaned.match(/tidal\.com\/(?:browse\/)?(track|album|playlist)\//);
-        allMatches.push({
-          index: match.index,
-          length: cleaned.length,
-          segment: { type: "tidal", value: cleaned, mediaType: tidalTypeMatch?.[1] ?? "track", mediaId: tidalMatch[1] },
-        });
-      } else {
-        // Shorten display URL
-        let display = cleaned;
-        try {
-          const u = new URL(cleaned);
-          display = u.hostname + (u.pathname !== "/" ? u.pathname : "");
-          if (display.length > 50) display = display.slice(0, 47) + "…";
-        } catch { /* keep as-is */ }
-
-        allMatches.push({
-          index: match.index,
-          length: cleaned.length,
-          segment: { type: "link", value: cleaned, display },
-        });
-      }
-    }
-  }
-
-  // Find nostr: mentions
-  const mentionRegex = new RegExp(NOSTR_MENTION_REGEX.source, "g");
-  while ((match = mentionRegex.exec(content)) !== null) {
-    const raw = match[1];
-    let display = raw.slice(0, 12) + "…";
-
-    let isQuote = false;
-    let eventId = "";
-    try {
-      const decoded = nip19.decode(raw);
-      if (decoded.type === "npub") {
-        display = raw.slice(0, 12) + "…";
-      } else if (decoded.type === "note") {
-        // Always treat note1 references as inline quotes
-        isQuote = true;
-        eventId = decoded.data as string;
-      } else if (decoded.type === "nevent") {
-        const d = decoded.data as { id: string; kind?: number };
-        // Only quote kind-1 notes (or unknown kind)
-        if (!d.kind || d.kind === 1) {
-          isQuote = true;
-          eventId = d.id;
-        } else {
-          display = "event:" + raw.slice(7, 15) + "…";
-        }
-      }
-    } catch { /* keep default */ }
-
-    allMatches.push({
-      index: match.index,
-      length: match[0].length,
-      segment: isQuote
-        ? { type: "quote", value: eventId }
-        : { type: "mention", value: raw, display },
-    });
-  }
-
-  // Find hashtags
-  const hashtagRegex = new RegExp(HASHTAG_REGEX.source, "g");
-  while ((match = hashtagRegex.exec(content)) !== null) {
-    allMatches.push({
-      index: match.index,
-      length: match[0].length,
-      segment: { type: "hashtag", value: match[1], display: `#${match[1]}` },
-    });
-  }
-
-  // Sort matches by index, remove overlaps
-  allMatches.sort((a, b) => a.index - b.index);
-  const filtered: typeof allMatches = [];
-  let lastEnd = 0;
-  for (const m of allMatches) {
-    if (m.index >= lastEnd) {
-      filtered.push(m);
-      lastEnd = m.index + m.length;
-    }
-  }
-
-  // Build segments
-  let cursor = 0;
-  for (const m of filtered) {
-    if (m.index > cursor) {
-      segments.push({ type: "text", value: content.slice(cursor, m.index) });
-    }
-    segments.push(m.segment);
-    cursor = m.index + m.length;
-  }
-  if (cursor < content.length) {
-    segments.push({ type: "text", value: content.slice(cursor) });
-  }
-
-  return segments;
-}
 
 // Returns true if we handled the URL internally (njump.me interception).
 function tryHandleUrlInternally(url: string): boolean {
@@ -251,6 +178,13 @@ function QuotePreview({ eventId }: { eventId: string }) {
   );
 }
 
+function MentionName({ pubkey, fallback }: { pubkey?: string; fallback: string }) {
+  const profile = useProfile(pubkey ?? "");
+  if (!pubkey) return <>{fallback}</>;
+  const name = profile?.displayName || profile?.name;
+  return <>{name || fallback}</>;
+}
+
 interface NoteContentProps {
   content: string;
   /** Render only inline text (no media blocks). Used inside the clickable area. */
@@ -303,7 +237,7 @@ export function NoteContent({ content, inline, mediaOnly }: NoteContentProps) {
               className="text-accent cursor-pointer hover:text-accent-hover"
               onClick={(e) => { e.stopPropagation(); tryOpenNostrEntity(seg.value); }}
             >
-              @{seg.display}
+              @<MentionName pubkey={seg.mentionPubkey} fallback={seg.display ?? seg.value.slice(0, 12) + "…"} />
             </span>
           );
           break;
@@ -328,21 +262,7 @@ export function NoteContent({ content, inline, mediaOnly }: NoteContentProps) {
           {inlineElements}
         </div>
         {/* Images stay inside the clickable area (they have their own stopPropagation) */}
-        {images.length > 0 && (
-          <div className={`mt-2 ${images.length > 1 ? "grid grid-cols-2 gap-1" : ""}`}>
-            {images.map((src, idx) => (
-              <img
-                key={idx}
-                src={src}
-                alt=""
-                loading="lazy"
-                className="max-w-full max-h-80 rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in"
-                onClick={(e) => { e.stopPropagation(); setLightboxIndex(idx); }}
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-              />
-            ))}
-          </div>
-        )}
+        <ImageGrid images={images} onImageClick={setLightboxIndex} />
         {lightboxIndex !== null && (
           <ImageLightbox
             images={images}
@@ -538,21 +458,7 @@ export function NoteContent({ content, inline, mediaOnly }: NoteContentProps) {
         {inlineElements}
       </div>
 
-      {images.length > 0 && (
-        <div className={`mt-2 ${images.length > 1 ? "grid grid-cols-2 gap-1" : ""}`}>
-          {images.map((src, idx) => (
-            <img
-              key={idx}
-              src={src}
-              alt=""
-              loading="lazy"
-              className="max-w-full max-h-80 rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in"
-              onClick={(e) => { e.stopPropagation(); setLightboxIndex(idx); }}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            />
-          ))}
-        </div>
-      )}
+      <ImageGrid images={images} onImageClick={setLightboxIndex} />
 
       {lightboxIndex !== null && (
         <ImageLightbox

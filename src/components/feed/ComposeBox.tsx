@@ -1,12 +1,19 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { publishNote } from "../../lib/nostr";
 import { uploadImage } from "../../lib/upload";
 import { useUserStore } from "../../stores/user";
 import { useFeedStore } from "../../stores/feed";
 import { shortenPubkey } from "../../lib/utils";
+import { open } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
+
+const COMPOSE_DRAFT_KEY = "wrystr_compose_draft";
 
 export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () => void; onNoteInjected?: (event: import("@nostr-dev-kit/ndk").NDKEvent) => void }) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(() => {
+    try { return localStorage.getItem(COMPOSE_DRAFT_KEY) || ""; }
+    catch { return ""; }
+  });
   const [publishing, setPublishing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,35 +23,123 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
   const avatar = profile?.picture;
   const name = profile?.displayName || profile?.name || (npub ? shortenPubkey(npub) : "");
 
+  // Auto-save draft with debounce
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (text.trim()) {
+        localStorage.setItem(COMPOSE_DRAFT_KEY, text);
+      } else {
+        localStorage.removeItem(COMPOSE_DRAFT_KEY);
+      }
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [text]);
+
   const charCount = text.length;
   const overLimit = charCount > 280;
   const canPost = text.trim().length > 0 && !overLimit && !publishing && !uploading;
 
-  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const file = Array.from(e.clipboardData.files).find((f) => f.type.startsWith("image/"));
-    if (!file) return;
-    e.preventDefault();
+  // Insert a URL at the current cursor position in the textarea
+  const insertUrl = (url: string) => {
+    const ta = textareaRef.current;
+    if (ta) {
+      const start = ta.selectionStart ?? text.length;
+      const end = ta.selectionEnd ?? text.length;
+      const next = text.slice(0, start) + url + text.slice(end);
+      setText(next);
+      setTimeout(() => {
+        ta.selectionStart = ta.selectionEnd = start + url.length;
+        ta.focus();
+      }, 0);
+    } else {
+      setText((t) => t + url);
+    }
+  };
+
+  // Upload a web File object (from clipboard/drag-drop)
+  const handleImageUpload = async (file: File) => {
     setUploading(true);
     setError(null);
     try {
       const url = await uploadImage(file);
-      const ta = textareaRef.current;
-      if (ta) {
-        const start = ta.selectionStart ?? text.length;
-        const end = ta.selectionEnd ?? text.length;
-        const next = text.slice(0, start) + url + text.slice(end);
-        setText(next);
-        setTimeout(() => {
-          ta.selectionStart = ta.selectionEnd = start + url.length;
-          ta.focus();
-        }, 0);
-      } else {
-        setText((t) => t + url);
-      }
+      insertUrl(url);
     } catch (err) {
       setError(`Image upload failed: ${err}`);
     } finally {
       setUploading(false);
+    }
+  };
+
+  // Upload a file by path using the Rust backend (bypasses WebView FormData issues)
+  const handleNativeUpload = async (filePath: string) => {
+    setUploading(true);
+    setError(null);
+    try {
+      const url = await invoke<string>("upload_file", { path: filePath });
+      insertUrl(url);
+    } catch (err) {
+      setError(`Upload failed: ${err}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    // Try clipboardData.files first (works on Windows, some Linux DEs)
+    const fileFromFiles = Array.from(e.clipboardData.files).find((f) => f.type.startsWith("image/"));
+    if (fileFromFiles) {
+      e.preventDefault();
+      handleImageUpload(fileFromFiles);
+      return;
+    }
+
+    // Try clipboardData.items (needed for Linux/Wayland screenshot paste)
+    const items = Array.from(e.clipboardData.items ?? []);
+    const imageItem = items.find((item) => item.type.startsWith("image/"));
+    if (imageItem) {
+      const file = imageItem.getAsFile();
+      if (file) {
+        e.preventDefault();
+        handleImageUpload(file);
+        return;
+      }
+    }
+
+    // If pasted text looks like a local file path to a media file, upload it directly
+    const pastedText = e.clipboardData.getData("text/plain");
+    if (pastedText && /\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|mov)$/i.test(pastedText.trim()) && /^(\/|[A-Z]:\\)/.test(pastedText.trim())) {
+      e.preventDefault();
+      handleNativeUpload(pastedText.trim());
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLTextAreaElement>) => {
+    const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith("image/"));
+    if (!file) return;
+    e.preventDefault();
+    e.stopPropagation();
+    handleImageUpload(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLTextAreaElement>) => {
+    if (Array.from(e.dataTransfer.types).includes("Files")) {
+      e.preventDefault();
+    }
+  };
+
+  const handleFilePicker = async () => {
+    try {
+      const selected = await open({
+        multiple: false,
+        filters: [
+          { name: "Media", extensions: ["jpg", "jpeg", "png", "gif", "webp", "svg", "mp4", "webm", "mov", "ogg", "m4v"] },
+        ],
+      });
+      if (!selected) return;
+      const path = typeof selected === "string" ? selected : selected;
+      handleNativeUpload(path);
+    } catch (err) {
+      setError(`File picker failed: ${err}`);
     }
   };
 
@@ -71,6 +166,7 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
         });
       }
       setText("");
+      localStorage.removeItem(COMPOSE_DRAFT_KEY);
       textareaRef.current?.focus();
       onPublished?.();
     } catch (err) {
@@ -108,6 +204,8 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
             placeholder="What's on your mind?"
             rows={3}
             className="w-full bg-transparent text-text text-[13px] placeholder:text-text-dim resize-none focus:outline-none"
@@ -120,8 +218,19 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
           <div className="flex items-center justify-between mt-1">
             <span className={`text-[10px] ${overLimit ? "text-danger" : "text-text-dim"}`}>
               {uploading ? "uploading image…" : charCount > 0 ? `${charCount}/280` : ""}
+              {!uploading && charCount > 0 && localStorage.getItem(COMPOSE_DRAFT_KEY) && (
+                <span className="ml-1 text-text-dim">(draft)</span>
+              )}
             </span>
             <div className="flex items-center gap-3">
+              <button
+                onClick={handleFilePicker}
+                disabled={uploading}
+                title="Attach image or video"
+                className="text-text-dim hover:text-text text-[13px] transition-colors disabled:opacity-30"
+              >
+                +
+              </button>
               <span className="text-text-dim text-[10px]">Ctrl+Enter to post</span>
               <button
                 onClick={handlePublish}

@@ -11,7 +11,7 @@ import { SkeletonNoteList } from "../shared/Skeleton";
 import { NDKEvent } from "@nostr-dev-kit/ndk";
 
 export function Feed() {
-  const { notes, loading, connected, error, connect, loadCachedFeed, loadFeed, focusedNoteIndex } = useFeedStore();
+  const { notes, loading, connected, error, connect, loadCachedFeed, loadFeed, trendingNotes, trendingLoading, loadTrendingFeed, focusedNoteIndex } = useFeedStore();
   const { loggedIn, follows } = useUserStore();
   const { mutedPubkeys } = useMuteStore();
   const { feedTab: tab, setFeedTab: setTab, feedLanguageFilter, setFeedLanguageFilter } = useUIStore();
@@ -29,6 +29,9 @@ export function Feed() {
     if (tab === "following" && loggedIn && follows.length > 0) {
       loadFollowFeed();
     }
+    if (tab === "trending") {
+      loadTrendingFeed();
+    }
   }, [tab, follows]);
 
   const loadFollowFeed = async () => {
@@ -42,8 +45,9 @@ export function Feed() {
   };
 
   const isFollowing = tab === "following";
-  const activeNotes = isFollowing ? followNotes : notes;
-  const isLoading = isFollowing ? followLoading : loading;
+  const isTrending = tab === "trending";
+  const activeNotes = isTrending ? trendingNotes : isFollowing ? followNotes : notes;
+  const isLoading = isTrending ? trendingLoading : isFollowing ? followLoading : loading;
 
   const filteredNotes = activeNotes.filter((event) => {
     if (mutedPubkeys.includes(event.pubkey)) return false;
@@ -105,6 +109,16 @@ export function Feed() {
               Following
             </button>
           )}
+          <button
+            onClick={() => setTab("trending")}
+            className={`px-3 py-1 text-[12px] transition-colors ${
+              tab === "trending"
+                ? "text-text border-b-2 border-accent"
+                : "text-text-muted hover:text-text"
+            }`}
+          >
+            Trending
+          </button>
         </div>
         <div className="flex items-center gap-3">
           <select
@@ -124,7 +138,7 @@ export function Feed() {
             </span>
           )}
           <button
-            onClick={isFollowing ? loadFollowFeed : loadFeed}
+            onClick={isTrending ? () => loadTrendingFeed(true) : isFollowing ? loadFollowFeed : loadFeed}
             disabled={isLoading}
             className="text-text-muted hover:text-text text-[11px] px-2 py-1 border border-border hover:border-text-dim transition-colors disabled:opacity-40"
           >
@@ -140,7 +154,7 @@ export function Feed() {
 
       {/* Feed */}
       <div className="flex-1 overflow-y-auto">
-        {error && !isFollowing && (
+        {error && !isFollowing && !isTrending && (
           <div className="px-4 py-3 text-danger text-[12px] border-b border-border bg-danger/5">
             {error}
           </div>

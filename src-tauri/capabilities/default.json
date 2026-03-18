@@ -13,6 +13,13 @@
       "allow": [
         { "url": "https://nostr.build/**" }
       ]
+    },
+    "dialog:default",
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [
+        { "path": "**" }
+      ]
     }
   ]
 }

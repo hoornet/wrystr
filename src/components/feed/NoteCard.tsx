@@ -63,6 +63,7 @@ export function NoteCard({ event, focused }: NoteCardProps) {
   const [liked, setLiked] = useState(() => getLiked().has(event.id));
   const [liking, setLiking] = useState(false);
   const [reactionCount, adjustReactionCount] = useReactionCount(event.id);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [replyCount, adjustReplyCount] = useReplyCount(event.id);
   const [copied, setCopied] = useState(false);
   const zapData = useZapCount(event.id);
@@ -78,14 +79,17 @@ export function NoteCard({ event, focused }: NoteCardProps) {
   const [reposted, setReposted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleLike = async () => {
+  const REACTION_EMOJIS = ["❤️", "🤙", "🔥", "😂", "🫡", "👀", "⚡"];
+
+  const handleReact = async (emoji?: string) => {
     if (!loggedIn || liked || liking) return;
     setLiking(true);
+    setShowEmojiPicker(false);
     try {
-      await publishReaction(event.id, event.pubkey);
-      const liked = getLiked();
-      liked.add(event.id);
-      localStorage.setItem(likedKey, JSON.stringify(Array.from(liked)));
+      await publishReaction(event.id, event.pubkey, emoji || "+");
+      const likedSet = getLiked();
+      likedSet.add(event.id);
+      localStorage.setItem(likedKey, JSON.stringify(Array.from(likedSet)));
       setLiked(true);
       adjustReactionCount(1);
     } finally {
@@ -249,15 +253,34 @@ export function NoteCard({ event, focused }: NoteCardProps) {
               >
                 reply{replyCount !== null && replyCount > 0 ? ` ${replyCount}` : ""}
               </button>
-              <button
-                onClick={handleLike}
-                disabled={liked || liking}
-                className={`text-[11px] transition-colors ${
-                  liked ? "text-accent" : "text-text-dim hover:text-accent"
-                } disabled:cursor-default`}
-              >
-                {liked ? "♥" : "♡"}{reactionCount !== null && reactionCount > 0 ? ` ${reactionCount}` : liked ? " liked" : " like"}
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => handleReact("❤️")}
+                  onContextMenu={(e) => { e.preventDefault(); if (!liked && !liking) setShowEmojiPicker((v) => !v); }}
+                  disabled={liked || liking}
+                  className={`text-[11px] transition-colors ${
+                    liked ? "text-accent" : "text-text-dim hover:text-accent"
+                  } disabled:cursor-default`}
+                >
+                  {liked ? "♥" : "♡"}{reactionCount !== null && reactionCount > 0 ? ` ${reactionCount}` : liked ? " liked" : " like"}
+                </button>
+                {showEmojiPicker && (
+                  <>
+                    <div className="fixed inset-0 z-[9]" onClick={() => setShowEmojiPicker(false)} />
+                    <div className="absolute bottom-6 left-0 bg-bg-raised border border-border shadow-lg z-10 flex gap-0.5 px-1.5 py-1">
+                      {REACTION_EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={() => handleReact(emoji)}
+                          className="text-[16px] hover:scale-125 transition-transform px-0.5"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
               <button
                 onClick={handleRepost}
                 disabled={reposting || reposted}

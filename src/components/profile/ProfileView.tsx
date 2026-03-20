@@ -352,14 +352,14 @@ export function ProfileView() {
           <div className="border-b border-border">
             {/* Banner */}
             {profile?.banner ? (
-              <div className="relative h-36 bg-bg-raised overflow-hidden">
+              <div className="relative h-44 bg-bg-raised overflow-hidden">
                 {!bannerLoaded && (
                   <div className="absolute inset-0 bg-bg-raised animate-pulse" />
                 )}
                 <img
                   src={profile.banner}
                   alt=""
-                  className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                  className="w-full h-full object-cover object-[center_30%] cursor-pointer hover:opacity-90 transition-opacity"
                   onClick={() => setBannerLightbox(true)}
                   onLoad={() => setBannerLoaded(true)}
                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}

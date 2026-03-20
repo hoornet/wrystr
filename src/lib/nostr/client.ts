@@ -950,14 +950,22 @@ export async function advancedSearch(parsed: ParsedSearch, limit = 50): Promise<
 
   const opts = { cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY };
 
+  // Wrap fetchEvents with a timeout — NDK can hang forever if no relay supports the filter
+  const fetchWithTimeout = (filter: NDKFilter & { search?: string }, timeoutMs = 8000): Promise<Set<NDKEvent>> => {
+    return Promise.race([
+      instance.fetchEvents(filter, opts),
+      new Promise<Set<NDKEvent>>((resolve) => setTimeout(() => resolve(new Set()), timeoutMs)),
+    ]);
+  };
+
   const noteFilter = noteKinds.length > 0 ? buildFilter(noteKinds) : null;
   const articleFilter = articleKinds.length > 0 ? buildFilter(articleKinds) : null;
   const shouldSearchUsers = (!hasKindFilter || parsed.kinds.includes(0)) && hasSearch && !hasHashtags;
 
   const [noteEvents, articleEvents, userEvents] = await Promise.all([
-    noteFilter ? instance.fetchEvents(noteFilter, opts) : Promise.resolve(new Set<NDKEvent>()),
-    articleFilter ? instance.fetchEvents(articleFilter, opts) : Promise.resolve(new Set<NDKEvent>()),
-    shouldSearchUsers ? instance.fetchEvents({ kinds: [NDKKind.Metadata], search: searchText, limit: 20 } as NDKFilter & { search: string }, opts) : Promise.resolve(new Set<NDKEvent>()),
+    noteFilter ? fetchWithTimeout(noteFilter) : Promise.resolve(new Set<NDKEvent>()),
+    articleFilter ? fetchWithTimeout(articleFilter) : Promise.resolve(new Set<NDKEvent>()),
+    shouldSearchUsers ? fetchWithTimeout({ kinds: [NDKKind.Metadata], search: searchText, limit: 20 } as NDKFilter & { search: string }) : Promise.resolve(new Set<NDKEvent>()),
   ]);
 
   let notes = Array.from(noteEvents);

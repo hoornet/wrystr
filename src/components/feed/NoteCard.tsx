@@ -124,8 +124,16 @@ export function NoteCard({ event, focused, onReplyInThread }: NoteCardProps) {
               <button
                 onClick={async (e) => {
                   e.stopPropagation();
+                  // If already in thread view, try scrolling to parent first
+                  if (currentView === "thread") {
+                    const el = document.querySelector(`[data-note-id="${parentEventId}"]`);
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "center" });
+                      return;
+                    }
+                  }
                   const parent = await fetchNoteById(parentEventId);
-                  if (parent) openThread(parent, currentView as "feed" | "profile");
+                  if (parent) openThread(parent);
                 }}
                 className="hover:text-accent transition-colors"
               >

@@ -6,24 +6,10 @@ import { useMuteStore } from "../../stores/mute";
 import { fetchNoteById, fetchThreadEvents, fetchAncestors, publishReply, getNDK } from "../../lib/nostr";
 import { buildThreadTree, getRootEventId } from "../../lib/threadTree";
 import type { ThreadNode } from "../../lib/threadTree";
-import { useProfile } from "../../hooks/useProfile";
-import { shortenPubkey } from "../../lib/utils";
 import { AncestorChain } from "./AncestorChain";
 import { ThreadNodeComponent } from "./ThreadNode";
 import { NoteCard } from "../feed/NoteCard";
 import { EmojiPicker } from "../shared/EmojiPicker";
-
-function ReplyTargetBadge({ event, onClear }: { event: NDKEvent; onClear: () => void }) {
-  const profile = useProfile(event.pubkey);
-  const name = profile?.displayName || profile?.name || shortenPubkey(event.pubkey);
-  return (
-    <div className="flex items-center gap-2 mb-1.5 text-[11px]">
-      <span className="text-text-dim">replying to</span>
-      <span className="text-accent font-medium">@{name}</span>
-      <button onClick={onClear} className="text-text-dim hover:text-text transition-colors">x</button>
-    </div>
-  );
-}
 
 export function ThreadView() {
   const { selectedNote, goBack } = useUIStore();
@@ -36,7 +22,7 @@ export function ThreadView() {
   const [ancestors, setAncestors] = useState<NDKEvent[]>([]);
   const [tree, setTree] = useState<ThreadNode | null>(null);
   const [loading, setLoading] = useState(true);
-  const [replyTarget, setReplyTarget] = useState<NDKEvent | null>(null);
+  const [showRootReply, setShowRootReply] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [replying, setReplying] = useState(false);
   const [replySent, setReplySent] = useState(false);
@@ -52,26 +38,21 @@ export function ThreadView() {
       setTree(null);
       setAncestors([]);
       setRootEvent(null);
-      setReplyTarget(null);
+      setShowRootReply(false);
 
       try {
-        // Determine root
         const rootId = getRootEventId(focusedEvent);
         let root: NDKEvent;
 
         if (!rootId || rootId === focusedEvent.id) {
-          // This IS the root
           root = focusedEvent;
         } else {
-          // Fetch the root event
           const fetched = await fetchNoteById(rootId);
           if (fetched) {
             root = fetched;
-            // Fetch ancestors between root and focused
             const anc = await fetchAncestors(focusedEvent);
             if (!cancelled) setAncestors(anc.filter((a) => a.id !== root.id));
           } else {
-            // Root not found, treat focused as root
             root = focusedEvent;
           }
         }
@@ -79,11 +60,9 @@ export function ThreadView() {
         if (cancelled) return;
         setRootEvent(root);
 
-        // Fetch all thread events and build tree
         const events = await fetchThreadEvents(root.id);
         if (cancelled) return;
 
-        // Include root in the event set
         const allEvents = [root, ...events.filter((e) => e.id !== root.id)];
         const built = buildThreadTree(root.id, allEvents);
         setTree(built);
@@ -101,7 +80,6 @@ export function ThreadView() {
   // Scroll to focused note after tree renders (if not root)
   useEffect(() => {
     if (!loading && rootEvent && focusedEvent.id !== rootEvent.id) {
-      // Small delay to allow DOM to render
       const timer = setTimeout(() => {
         const el = document.querySelector(`[data-note-id="${focusedEvent.id}"]`);
         el?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -110,39 +88,26 @@ export function ThreadView() {
     }
   }, [loading, rootEvent?.id, focusedEvent.id]);
 
-  const handleReplyInThread = (event: NDKEvent) => {
-    setReplyTarget(event);
-    setTimeout(() => replyRef.current?.focus(), 50);
+  // Called when any inline reply box publishes a reply
+  const handleReplyPublished = (reply: NDKEvent) => {
+    if (tree && rootEvent) {
+      const allEvents = collectEvents(tree);
+      allEvents.push(reply);
+      const rebuilt = buildThreadTree(rootEvent.id, allEvents);
+      setTree(rebuilt);
+    }
   };
 
-  const effectiveReplyTarget = replyTarget ?? rootEvent;
-
-  const handleReply = async () => {
+  // Root-level reply (reply to the root note)
+  const handleRootReply = async () => {
     if (!replyText.trim() || replying || !rootEvent) return;
     setReplying(true);
     try {
-      const target = effectiveReplyTarget ?? rootEvent;
-      const rootArg = target.id !== rootEvent.id
-        ? { id: rootEvent.id, pubkey: rootEvent.pubkey }
-        : undefined;
-
-      const replyEvent = await publishReply(
-        replyText.trim(),
-        { id: target.id, pubkey: target.pubkey },
-        rootArg,
-      );
+      const reply = await publishReply(replyText.trim(), { id: rootEvent.id, pubkey: rootEvent.pubkey });
       setReplyText("");
       setReplySent(true);
-      setReplyTarget(null);
-
-      // Optimistically insert into tree
-      if (tree) {
-        const allEvents = collectEvents(tree);
-        allEvents.push(replyEvent);
-        const rebuilt = buildThreadTree(rootEvent.id, allEvents);
-        setTree(rebuilt);
-      }
-
+      setShowRootReply(false);
+      handleReplyPublished(reply);
       setTimeout(() => setReplySent(false), 2000);
     } finally {
       setReplying(false);
@@ -150,7 +115,7 @@ export function ThreadView() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleReply();
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleRootReply();
     if (e.key === "Escape") replyRef.current?.blur();
   };
 
@@ -185,21 +150,18 @@ export function ThreadView() {
             {/* Ancestors (when opening a deep reply) */}
             <AncestorChain ancestors={ancestors} />
 
-            {/* Root note rendered via tree */}
+            {/* Root note */}
             <div data-note-id={tree.event.id}>
               <NoteCard
                 event={tree.event}
                 focused={tree.event.id === focusedEvent.id}
-                onReplyInThread={handleReplyInThread}
+                onReplyInThread={() => setShowRootReply((v) => !v)}
               />
             </div>
 
-            {/* Reply composer */}
-            {loggedIn && !!getNDK().signer && (
-              <div className="border-b border-border px-4 py-3">
-                {replyTarget && replyTarget.id !== rootEvent.id && (
-                  <ReplyTargetBadge event={replyTarget} onClear={() => setReplyTarget(null)} />
-                )}
+            {/* Root reply box (inline, right below root) */}
+            {showRootReply && loggedIn && !!getNDK().signer && (
+              <div className="border-b border-border border-l-2 border-l-accent/40 ml-3 px-3 py-2">
                 <textarea
                   ref={replyRef}
                   value={replyText}
@@ -207,7 +169,8 @@ export function ThreadView() {
                   onKeyDown={handleKeyDown}
                   placeholder="Write a reply..."
                   rows={2}
-                  className="w-full bg-transparent text-text text-[13px] placeholder:text-text-dim resize-none focus:outline-none"
+                  className="w-full bg-transparent text-text text-[12px] placeholder:text-text-dim resize-none focus:outline-none"
+                  autoFocus
                 />
                 <div className="flex items-center justify-end gap-2 mt-1">
                   <div className="relative">
@@ -237,9 +200,9 @@ export function ThreadView() {
                   </div>
                   <span className="text-text-dim text-[10px]">Ctrl+Enter</span>
                   <button
-                    onClick={handleReply}
+                    onClick={handleRootReply}
                     disabled={!replyText.trim() || replying}
-                    className="px-3 py-1 text-[11px] bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="px-2 py-0.5 text-[10px] bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     {replySent ? "replied ✓" : replying ? "posting..." : "reply"}
                   </button>
@@ -248,7 +211,7 @@ export function ThreadView() {
             )}
 
             {/* Thread tree (children of root) */}
-            {tree.children.length === 0 && (
+            {tree.children.length === 0 && !showRootReply && (
               <div className="px-4 py-6 text-text-dim text-[12px] text-center">
                 No replies yet.
               </div>
@@ -260,7 +223,8 @@ export function ThreadView() {
                 <ThreadNodeComponent
                   key={child.event.id}
                   node={child}
-                  onReplyInThread={handleReplyInThread}
+                  rootEvent={rootEvent}
+                  onReplyPublished={handleReplyPublished}
                   focusedId={focusedEvent.id}
                   mutedPubkeys={mutedPubkeys}
                   contentMatchesMutedKeyword={contentMatchesMutedKeyword}

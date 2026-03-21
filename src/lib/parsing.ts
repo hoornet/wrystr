@@ -9,11 +9,12 @@ const YOUTUBE_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be
 const TIDAL_REGEX = /tidal\.com\/(?:browse\/)?(?:track|album|playlist)\/([a-zA-Z0-9-]+)/;
 const SPOTIFY_REGEX = /open\.spotify\.com\/(track|album|playlist|episode|show)\/([a-zA-Z0-9]+)/;
 const VIMEO_REGEX = /vimeo\.com\/(\d+)/;
+const FOUNTAIN_REGEX = /fountain\.fm\/(episode|show)\/([a-zA-Z0-9-]+)/;
 const NOSTR_MENTION_REGEX = /nostr:(npub1[a-z0-9]+|note1[a-z0-9]+|nevent1[a-z0-9]+|nprofile1[a-z0-9]+|naddr1[a-z0-9]+)/g;
 const HASHTAG_REGEX = /(?<=\s|^)#(\w{2,})/g;
 
 export interface ContentSegment {
-  type: "text" | "link" | "image" | "video" | "audio" | "youtube" | "vimeo" | "spotify" | "tidal" | "mention" | "hashtag" | "quote";
+  type: "text" | "link" | "image" | "video" | "audio" | "youtube" | "vimeo" | "spotify" | "tidal" | "fountain" | "mention" | "hashtag" | "quote";
   value: string;  // for "quote": the hex event ID
   display?: string;
   mediaId?: string;       // video/embed ID for youtube/vimeo
@@ -83,6 +84,13 @@ export function parseContent(content: string): ContentSegment[] {
           index: match.index,
           length: cleaned.length,
           segment: { type: "tidal", value: cleaned, mediaType: tidalTypeMatch?.[1] ?? "track", mediaId: tidalMatch[1] },
+        });
+      } else if (FOUNTAIN_REGEX.test(cleaned)) {
+        const fmMatch = cleaned.match(FOUNTAIN_REGEX);
+        allMatches.push({
+          index: match.index,
+          length: cleaned.length,
+          segment: { type: "fountain", value: cleaned, mediaType: fmMatch?.[1] ?? "episode", mediaId: fmMatch?.[2] },
         });
       } else {
         // Shorten display URL

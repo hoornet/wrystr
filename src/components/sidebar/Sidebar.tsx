@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { id: "feed" as const, label: "feed", icon: "◈" },
   { id: "articles" as const, label: "articles", icon: "☰" },
   { id: "media" as const, label: "media", icon: "▶" },
+  { id: "podcasts" as const, label: "podcasts", icon: "P" },
   { id: "search" as const, label: "search", icon: "⌕" },
   { id: "bookmarks" as const, label: "bookmarks", icon: "▪" },
   { id: "dm" as const, label: "messages", icon: "✉" },

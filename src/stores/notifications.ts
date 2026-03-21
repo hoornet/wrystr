@@ -2,27 +2,40 @@ import { create } from "zustand";
 import { NDKEvent } from "@nostr-dev-kit/ndk";
 import { fetchMentions } from "../lib/nostr";
 
-const NOTIF_SEEN_KEY = "wrystr_notif_last_seen";
+const NOTIF_READ_KEY = "wrystr_notif_read_ids";
 const DM_SEEN_KEY = "wrystr_dm_last_seen";
+const MAX_NOTIFICATIONS = 15;
 
 interface NotificationsState {
   notifications: NDKEvent[];
   unreadCount: number;
-  lastSeenAt: number;
+  readIds: Set<string>;
   loading: boolean;
   currentPubkey: string | null;
   dmLastSeen: Record<string, number>;
   dmUnreadCount: number;
 
   fetchNotifications: (pubkey: string) => Promise<void>;
+  markRead: (eventId: string) => void;
   markAllRead: () => void;
+  isRead: (eventId: string) => boolean;
   markDMRead: (partnerPubkey: string) => void;
   computeDMUnread: (conversations: Array<{ partnerPubkey: string; lastAt: number }>) => void;
 }
 
-function loadLastSeen(): number {
-  const stored = parseInt(localStorage.getItem(NOTIF_SEEN_KEY) ?? "0");
-  return stored || Math.floor(Date.now() / 1000) - 86400;
+function loadReadIds(): Set<string> {
+  try {
+    const arr = JSON.parse(localStorage.getItem(NOTIF_READ_KEY) ?? "[]");
+    return new Set(arr);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveReadIds(ids: Set<string>) {
+  // Only keep the most recent entries to avoid unbounded growth
+  const arr = Array.from(ids).slice(-200);
+  localStorage.setItem(NOTIF_READ_KEY, JSON.stringify(arr));
 }
 
 function loadDMLastSeen(): Record<string, number> {
@@ -36,7 +49,7 @@ function loadDMLastSeen(): Record<string, number> {
 export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   notifications: [],
   unreadCount: 0,
-  lastSeenAt: loadLastSeen(),
+  readIds: loadReadIds(),
   loading: false,
   currentPubkey: null,
   dmLastSeen: loadDMLastSeen(),
@@ -50,11 +63,16 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     }
     set({ loading: true });
     try {
-      const lastSeenAt = isNewAccount ? loadLastSeen() : get().lastSeenAt;
-      const events = await fetchMentions(pubkey, lastSeenAt);
-      const newEvents = events.filter((e) => (e.created_at ?? 0) > lastSeenAt);
-      const unreadCount = newEvents.length;
-      set({ notifications: events, unreadCount, lastSeenAt });
+      // Always fetch recent notifications (last 7 days), keep up to MAX_NOTIFICATIONS
+      const since = Math.floor(Date.now() / 1000) - 7 * 86400;
+      // Fetch more than we need since we filter out own events
+      const events = await fetchMentions(pubkey, since, MAX_NOTIFICATIONS * 3);
+      // Filter out own events — your replies shouldn't be notifications
+      const others = events.filter((e) => e.pubkey !== pubkey);
+      const sorted = others.sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)).slice(0, MAX_NOTIFICATIONS);
+      const { readIds } = get();
+      const unreadCount = sorted.filter((e) => !readIds.has(e.id!)).length;
+      set({ notifications: sorted, unreadCount });
     } catch {
       // Non-critical
     } finally {
@@ -62,10 +80,28 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     }
   },
 
+  markRead: (eventId: string) => {
+    const { readIds, notifications } = get();
+    if (readIds.has(eventId)) return;
+    const updated = new Set(readIds);
+    updated.add(eventId);
+    saveReadIds(updated);
+    const unreadCount = notifications.filter((e) => !updated.has(e.id!)).length;
+    set({ readIds: updated, unreadCount });
+  },
+
   markAllRead: () => {
-    const now = Math.floor(Date.now() / 1000);
-    localStorage.setItem(NOTIF_SEEN_KEY, String(now));
-    set({ lastSeenAt: now, unreadCount: 0 });
+    const { notifications, readIds } = get();
+    const updated = new Set(readIds);
+    for (const e of notifications) {
+      if (e.id) updated.add(e.id);
+    }
+    saveReadIds(updated);
+    set({ readIds: updated, unreadCount: 0 });
+  },
+
+  isRead: (eventId: string) => {
+    return get().readIds.has(eventId);
   },
 
   markDMRead: (partnerPubkey: string) => {

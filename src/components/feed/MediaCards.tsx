@@ -1,4 +1,5 @@
 import { ContentSegment } from "../../lib/parsing";
+import { usePodcastStore } from "../../stores/podcast";
 
 export function VideoBlock({ sources }: { sources: string[] }) {
   if (sources.length === 0) return null;
@@ -20,6 +21,7 @@ export function VideoBlock({ sources }: { sources: string[] }) {
 }
 
 export function AudioBlock({ sources }: { sources: string[] }) {
+  const play = usePodcastStore((s) => s.play);
   if (sources.length === 0) return null;
   return (
     <div className="mt-2 flex flex-col gap-2">
@@ -27,7 +29,27 @@ export function AudioBlock({ sources }: { sources: string[] }) {
         const filename = src.split("/").pop()?.split("?")[0] ?? src;
         return (
           <div key={i} className="rounded-sm bg-bg-raised border border-border p-2">
-            <div className="text-[11px] text-text-muted mb-1 truncate">{filename}</div>
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-[11px] text-text-muted truncate">{filename}</div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  play({
+                    guid: `audio:${src}`,
+                    title: filename,
+                    enclosureUrl: src,
+                    pubDate: 0,
+                    duration: 0,
+                    description: "",
+                    showTitle: "From note",
+                    showArtworkUrl: "",
+                  });
+                }}
+                className="text-[10px] text-accent hover:text-accent-hover transition-colors shrink-0 ml-2"
+              >
+                play in wrystr
+              </button>
+            </div>
             <audio controls preload="metadata" className="w-full h-8" src={src} />
           </div>
         );

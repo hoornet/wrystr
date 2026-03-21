@@ -18,6 +18,8 @@ import { DMView } from "./components/dm/DMView";
 import { NotificationsView } from "./components/notifications/NotificationsView";
 import { BookmarkView } from "./components/bookmark/BookmarkView";
 import { HashtagFeed } from "./components/feed/HashtagFeed";
+import { PodcastsView } from "./components/podcast/PodcastsView";
+import { PodcastPlayerBar } from "./components/podcast/PodcastPlayerBar";
 import { HelpModal } from "./components/shared/HelpModal";
 import { useUIStore } from "./stores/ui";
 import { useUpdater } from "./hooks/useUpdater";
@@ -102,8 +104,10 @@ function App() {
         {currentView === "notifications" && <NotificationsView />}
         {currentView === "bookmarks" && <BookmarkView />}
         {currentView === "hashtag" && <HashtagFeed />}
+        {currentView === "podcasts" && <PodcastsView />}
       </main>
       </div>
+      <PodcastPlayerBar />
       {showHelp && <HelpModal onClose={toggleHelp} />}
     </div>
   );

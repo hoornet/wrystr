@@ -8,6 +8,7 @@ import { ImageLightbox } from "../shared/ImageLightbox";
 import { parseContent } from "../../lib/parsing";
 import { renderTextSegments } from "./TextSegments";
 import { VideoBlock, AudioBlock, YouTubeCard, VimeoCard, SpotifyCard, TidalCard } from "./MediaCards";
+import { FountainCard } from "./FountainCard";
 
 function ImageGrid({ images, onImageClick }: { images: string[]; onImageClick: (index: number) => void }) {
   const count = images.length;
@@ -159,6 +160,7 @@ export function NoteContent({ content, inline, mediaOnly }: NoteContentProps) {
   const vimeos = segments.filter((s) => s.type === "vimeo");
   const spotifys = segments.filter((s) => s.type === "spotify");
   const tidals = segments.filter((s) => s.type === "tidal");
+  const fountains = segments.filter((s) => s.type === "fountain");
   const quoteIds: string[] = segments.filter((s) => s.type === "quote").map((s) => s.value);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -185,7 +187,7 @@ export function NoteContent({ content, inline, mediaOnly }: NoteContentProps) {
   // --- Media blocks only (rendered OUTSIDE the clickable wrapper) ---
   if (mediaOnly) {
     const hasMedia = videos.length > 0 || audios.length > 0 || youtubes.length > 0
-      || vimeos.length > 0 || spotifys.length > 0 || tidals.length > 0 || quoteIds.length > 0;
+      || vimeos.length > 0 || spotifys.length > 0 || tidals.length > 0 || fountains.length > 0 || quoteIds.length > 0;
     if (!hasMedia) return null;
 
     return (
@@ -196,6 +198,7 @@ export function NoteContent({ content, inline, mediaOnly }: NoteContentProps) {
         {vimeos.map((seg, i) => <VimeoCard key={`vim-${i}`} seg={seg} />)}
         {spotifys.map((seg, i) => <SpotifyCard key={`sp-${i}`} seg={seg} />)}
         {tidals.map((seg, i) => <TidalCard key={`td-${i}`} seg={seg} />)}
+        {fountains.map((seg, i) => <FountainCard key={`fn-${i}`} seg={seg} />)}
         {quoteIds.map((id) => <QuotePreview key={id} eventId={id} />)}
       </div>
     );
@@ -225,6 +228,7 @@ export function NoteContent({ content, inline, mediaOnly }: NoteContentProps) {
       {vimeos.map((seg, i) => <VimeoCard key={`vim-${i}`} seg={seg} />)}
       {spotifys.map((seg, i) => <SpotifyCard key={`sp-${i}`} seg={seg} />)}
       {tidals.map((seg, i) => <TidalCard key={`td-${i}`} seg={seg} />)}
+      {fountains.map((seg, i) => <FountainCard key={`fn-${i}`} seg={seg} />)}
       {quoteIds.map((id) => <QuotePreview key={id} eventId={id} />)}
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useUserStore } from "../../stores/user";
 import { useMuteStore } from "../../stores/mute";
 import { useNotificationsStore } from "../../stores/notifications";
@@ -10,24 +10,20 @@ export function NotificationsView() {
   const {
     notifications,
     unreadCount,
-    lastSeenAt,
     loading,
     fetchNotifications,
     markAllRead,
+    markRead,
+    isRead,
   } = useNotificationsStore();
   const { mutedPubkeys, contentMatchesMutedKeyword } = useMuteStore();
   const filteredNotifications = notifications.filter(
-    (e) => !mutedPubkeys.includes(e.pubkey) && !contentMatchesMutedKeyword(e.content)
+    (e) => e.pubkey !== pubkey && !mutedPubkeys.includes(e.pubkey) && !contentMatchesMutedKeyword(e.content)
   );
-
-  // Capture lastSeenAt at mount time so unread highlights persist during this view session
-  const prevLastSeenAtRef = useRef(lastSeenAt);
 
   useEffect(() => {
     if (!pubkey) return;
-    fetchNotifications(pubkey).then(() => {
-      setTimeout(() => markAllRead(), 500);
-    });
+    fetchNotifications(pubkey);
   }, [pubkey]);
 
   if (!loggedIn || !pubkey) {
@@ -65,11 +61,12 @@ export function NotificationsView() {
         )}
 
         {filteredNotifications.map((event) => {
-          const isUnread = (event.created_at ?? 0) > prevLastSeenAtRef.current;
+          const read = isRead(event.id!);
           return (
             <div
               key={event.id}
-              className={isUnread ? "border-l-2 border-accent/40" : ""}
+              className={`transition-opacity ${read ? "opacity-50" : "border-l-2 border-accent/40"}`}
+              onClick={() => { if (!read && event.id) markRead(event.id); }}
             >
               <NoteCard event={event} />
             </div>

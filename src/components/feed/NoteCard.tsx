@@ -7,6 +7,7 @@ import { useMuteStore } from "../../stores/mute";
 import { useUIStore } from "../../stores/ui";
 import { timeAgo, shortenPubkey } from "../../lib/utils";
 import { getNDK, fetchNoteById } from "../../lib/nostr";
+import { getParentEventId } from "../../lib/threadTree";
 import { NoteContent } from "./NoteContent";
 import { NoteActions, LoggedOutStats } from "./NoteActions";
 import { InlineReplyBox } from "./InlineReplyBox";
@@ -14,14 +15,7 @@ import { InlineReplyBox } from "./InlineReplyBox";
 interface NoteCardProps {
   event: NDKEvent;
   focused?: boolean;
-}
-
-function getParentEventId(event: NDKEvent): string | null {
-  const eTags = event.tags.filter((t) => t[0] === "e");
-  if (eTags.length === 0) return null;
-  return eTags.find((t) => t[3] === "reply")?.[1]
-    ?? eTags.find((t) => t[3] === "root")?.[1]
-    ?? eTags[eTags.length - 1][1];
+  onReplyInThread?: (event: NDKEvent) => void;
 }
 
 function ParentAuthorName({ pubkey }: { pubkey: string }) {
@@ -30,7 +24,7 @@ function ParentAuthorName({ pubkey }: { pubkey: string }) {
   return <span className="text-accent">@{name}</span>;
 }
 
-export function NoteCard({ event, focused }: NoteCardProps) {
+export function NoteCard({ event, focused, onReplyInThread }: NoteCardProps) {
   const profile = useProfile(event.pubkey);
   const name = profile?.displayName || profile?.name || shortenPubkey(event.pubkey);
   const avatar = profile?.picture;
@@ -57,6 +51,7 @@ export function NoteCard({ event, focused }: NoteCardProps) {
   return (
     <article
       ref={cardRef}
+      data-note-id={event.id}
       className={`border-b border-border px-4 py-3 hover:bg-bg-hover transition-colors duration-100 group/card${focused ? " ring-1 ring-inset ring-accent/30" : ""}`}
     >
       <div className="flex gap-3">
@@ -160,8 +155,14 @@ export function NoteCard({ event, focused }: NoteCardProps) {
           {loggedIn && !!getNDK().signer && (
             <NoteActions
               event={event}
-              onReplyToggle={() => setShowReply((v) => !v)}
-              showReply={showReply}
+              onReplyToggle={() => {
+                if (onReplyInThread) {
+                  onReplyInThread(event);
+                } else {
+                  setShowReply((v) => !v);
+                }
+              }}
+              showReply={showReply && !onReplyInThread}
             />
           )}
 

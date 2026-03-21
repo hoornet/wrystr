@@ -94,17 +94,33 @@ export async function publishNote(content: string): Promise<NDKEvent> {
   return event;
 }
 
-export async function publishReply(content: string, replyTo: { id: string; pubkey: string }): Promise<NDKEvent> {
+export async function publishReply(
+  content: string,
+  replyTo: { id: string; pubkey: string },
+  rootEvent?: { id: string; pubkey: string },
+): Promise<NDKEvent> {
   const instance = getNDK();
   if (!instance.signer) throw new Error("Not logged in");
 
   const event = new NDKEvent(instance);
   event.kind = NDKKind.Text;
   event.content = content;
-  event.tags = [
-    ["e", replyTo.id, "", "reply"],
-    ["p", replyTo.pubkey],
-  ];
+
+  if (rootEvent && rootEvent.id !== replyTo.id) {
+    // Replying to a reply — emit both root and reply markers (NIP-10)
+    const pTags = new Set([rootEvent.pubkey, replyTo.pubkey]);
+    event.tags = [
+      ["e", rootEvent.id, "", "root"],
+      ["e", replyTo.id, "", "reply"],
+      ...Array.from(pTags).map((p) => ["p", p]),
+    ];
+  } else {
+    // Replying directly to root
+    event.tags = [
+      ["e", replyTo.id, "", "root"],
+      ["p", replyTo.pubkey],
+    ];
+  }
   await event.publish();
   return event;
 }
@@ -138,6 +154,55 @@ export async function publishQuote(content: string, quotedEvent: NDKEvent): Prom
     ["p", quotedEvent.pubkey],
   ];
   await note.publish();
+}
+
+export async function fetchThreadEvents(rootId: string): Promise<NDKEvent[]> {
+  const instance = getNDK();
+
+  // Round-trip 1: all events tagging the root
+  const directFilter: NDKFilter = { kinds: [NDKKind.Text], "#e": [rootId] };
+  const directEvents = await instance.fetchEvents(directFilter, {
+    cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY,
+  });
+
+  const allEvents = new Map<string, NDKEvent>();
+  for (const e of directEvents) allEvents.set(e.id, e);
+
+  // Round-trip 2: replies to any event in the thread (catches deep replies that only tag parent)
+  const knownIds = Array.from(allEvents.keys());
+  if (knownIds.length > 0) {
+    const deepFilter: NDKFilter = { kinds: [NDKKind.Text], "#e": knownIds };
+    const deepEvents = await instance.fetchEvents(deepFilter, {
+      cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY,
+    });
+    for (const e of deepEvents) allEvents.set(e.id, e);
+  }
+
+  return Array.from(allEvents.values());
+}
+
+export async function fetchAncestors(event: NDKEvent, maxDepth = 5): Promise<NDKEvent[]> {
+  const ancestors: NDKEvent[] = [];
+  let current = event;
+
+  for (let i = 0; i < maxDepth; i++) {
+    const eTags = current.tags.filter((t) => t[0] === "e");
+    if (eTags.length === 0) break;
+
+    // Walk up: prefer "reply" marker, then "root", then last e-tag
+    const parentId =
+      eTags.find((t) => t[3] === "reply")?.[1] ??
+      eTags.find((t) => t[3] === "root")?.[1] ??
+      eTags[eTags.length - 1][1];
+
+    if (!parentId) break;
+    const parent = await fetchNoteById(parentId);
+    if (!parent) break;
+    ancestors.unshift(parent); // root-first order
+    current = parent;
+  }
+
+  return ancestors;
 }
 
 export async function fetchHashtagFeed(tag: string, limit = 100): Promise<NDKEvent[]> {

@@ -3,143 +3,24 @@ import { NDKEvent } from "@nostr-dev-kit/ndk";
 import { useUIStore } from "../../stores/ui";
 import { useUserStore } from "../../stores/user";
 import { useMuteStore } from "../../stores/mute";
+import { fetchNoteById, fetchThreadEvents, fetchAncestors, publishReply, getNDK } from "../../lib/nostr";
+import { buildThreadTree, getRootEventId } from "../../lib/threadTree";
+import type { ThreadNode } from "../../lib/threadTree";
 import { useProfile } from "../../hooks/useProfile";
-import { useReactionCount } from "../../hooks/useReactionCount";
-import { useZapCount } from "../../hooks/useZapCount";
-import { fetchReplies, publishReaction, publishReply, publishRepost, getNDK } from "../../lib/nostr";
-import { QuoteModal } from "../feed/QuoteModal";
-import { EmojiPicker } from "../shared/EmojiPicker";
-import { shortenPubkey, timeAgo } from "../../lib/utils";
-import { NoteContent } from "../feed/NoteContent";
+import { shortenPubkey } from "../../lib/utils";
+import { AncestorChain } from "./AncestorChain";
+import { ThreadNodeComponent } from "./ThreadNode";
 import { NoteCard } from "../feed/NoteCard";
-import { ZapModal } from "../zap/ZapModal";
+import { EmojiPicker } from "../shared/EmojiPicker";
 
-function RootNote({ event }: { event: NDKEvent }) {
-  const { openProfile } = useUIStore();
-  const { loggedIn } = useUserStore();
+function ReplyTargetBadge({ event, onClear }: { event: NDKEvent; onClear: () => void }) {
   const profile = useProfile(event.pubkey);
   const name = profile?.displayName || profile?.name || shortenPubkey(event.pubkey);
-  const avatar = profile?.picture;
-  const nip05 = profile?.nip05;
-  const time = event.created_at ? timeAgo(event.created_at) : "";
-  const [reactionCount, adjustReactionCount] = useReactionCount(event.id);
-  const zapData = useZapCount(event.id);
-  const [liked, setLiked] = useState(() => {
-    try { return new Set<string>(JSON.parse(localStorage.getItem("wrystr_liked") || "[]")).has(event.id); }
-    catch { return false; }
-  });
-  const [liking, setLiking] = useState(false);
-  const [showZap, setShowZap] = useState(false);
-  const [reposting, setReposting] = useState(false);
-  const [reposted, setReposted] = useState(false);
-  const [showQuote, setShowQuote] = useState(false);
-  const hasLightning = !!(profile?.lud16 || profile?.lud06);
-
-  const handleLike = async () => {
-    if (!loggedIn || liked || liking) return;
-    setLiking(true);
-    try {
-      await publishReaction(event.id, event.pubkey);
-      const likedSet = new Set<string>(JSON.parse(localStorage.getItem("wrystr_liked") || "[]"));
-      likedSet.add(event.id);
-      localStorage.setItem("wrystr_liked", JSON.stringify(Array.from(likedSet)));
-      setLiked(true);
-      adjustReactionCount(1);
-    } finally {
-      setLiking(false);
-    }
-  };
-
-  const handleRepost = async () => {
-    if (reposting || reposted) return;
-    setReposting(true);
-    try {
-      await publishRepost(event);
-      setReposted(true);
-    } finally {
-      setReposting(false);
-    }
-  };
-
   return (
-    <div className="px-4 py-4 border-b border-border">
-      <div className="flex gap-3 mb-3">
-        <div className="shrink-0 cursor-pointer" onClick={() => openProfile(event.pubkey)}>
-          {avatar ? (
-            <img src={avatar} alt="" className="w-10 h-10 rounded-sm object-cover bg-bg-raised hover:opacity-80 transition-opacity" />
-          ) : (
-            <div className="w-10 h-10 rounded-sm bg-bg-raised border border-border flex items-center justify-center text-text-dim text-sm">
-              {name.charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
-        <div>
-          <span
-            className="text-text font-medium text-[13px] cursor-pointer hover:text-accent transition-colors"
-            onClick={() => openProfile(event.pubkey)}
-          >{name}</span>
-          {nip05 && <div className="text-text-dim text-[10px]">{nip05}</div>}
-        </div>
-      </div>
-      <NoteContent content={event.content} />
-      <div className="text-text-dim text-[10px] mt-3">{time}</div>
-
-      {/* Action row */}
-      {loggedIn && !!getNDK().signer && (
-        <div className="flex items-center gap-4 mt-3">
-          <button
-            onClick={handleLike}
-            disabled={liked || liking}
-            className={`text-[11px] transition-colors ${
-              liked ? "text-accent" : "text-text-dim hover:text-accent"
-            } disabled:cursor-default`}
-          >
-            {liked ? "♥" : "♡"}{reactionCount !== null && reactionCount > 0 ? ` ${reactionCount}` : liked ? " liked" : " like"}
-          </button>
-          <button
-            onClick={handleRepost}
-            disabled={reposting || reposted}
-            className={`text-[11px] transition-colors disabled:cursor-default ${
-              reposted ? "text-accent" : "text-text-dim hover:text-accent"
-            }`}
-          >
-            {reposted ? "reposted ✓" : reposting ? "…" : "repost"}
-          </button>
-          <button
-            onClick={() => setShowQuote(true)}
-            className="text-[11px] text-text-dim hover:text-text transition-colors"
-          >
-            quote
-          </button>
-          {hasLightning && (
-            <button
-              onClick={() => setShowZap(true)}
-              className="text-[11px] text-text-dim hover:text-zap transition-colors"
-            >
-              {zapData && zapData.totalSats > 0
-                ? `⚡ ${zapData.totalSats.toLocaleString()} sats`
-                : "⚡ zap"}
-            </button>
-          )}
-        </div>
-      )}
-
-      {showZap && (
-        <ZapModal
-          target={{ type: "note", event, recipientPubkey: event.pubkey }}
-          recipientName={name}
-          onClose={() => setShowZap(false)}
-        />
-      )}
-
-      {showQuote && (
-        <QuoteModal
-          event={event}
-          authorName={name}
-          authorAvatar={avatar}
-          onClose={() => setShowQuote(false)}
-        />
-      )}
+    <div className="flex items-center gap-2 mb-1.5 text-[11px]">
+      <span className="text-text-dim">replying to</span>
+      <span className="text-accent font-medium">@{name}</span>
+      <button onClick={onClear} className="text-text-dim hover:text-text transition-colors">x</button>
     </div>
   );
 }
@@ -149,34 +30,119 @@ export function ThreadView() {
   const { loggedIn } = useUserStore();
   const { mutedPubkeys, contentMatchesMutedKeyword } = useMuteStore();
   if (!selectedNote) { goBack(); return null; }
-  const event = selectedNote;
+  const focusedEvent = selectedNote;
 
-  const [replies, setReplies] = useState<NDKEvent[]>([]);
+  const [rootEvent, setRootEvent] = useState<NDKEvent | null>(null);
+  const [ancestors, setAncestors] = useState<NDKEvent[]>([]);
+  const [tree, setTree] = useState<ThreadNode | null>(null);
   const [loading, setLoading] = useState(true);
+  const [replyTarget, setReplyTarget] = useState<NDKEvent | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replying, setReplying] = useState(false);
   const [replySent, setReplySent] = useState(false);
   const [showReplyEmoji, setShowReplyEmoji] = useState(false);
   const replyRef = useRef<HTMLTextAreaElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchReplies(event.id).then((r) => {
-      setReplies(r);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [event.id]);
+    let cancelled = false;
+
+    async function loadThread() {
+      setLoading(true);
+      setTree(null);
+      setAncestors([]);
+      setRootEvent(null);
+      setReplyTarget(null);
+
+      try {
+        // Determine root
+        const rootId = getRootEventId(focusedEvent);
+        let root: NDKEvent;
+
+        if (!rootId || rootId === focusedEvent.id) {
+          // This IS the root
+          root = focusedEvent;
+        } else {
+          // Fetch the root event
+          const fetched = await fetchNoteById(rootId);
+          if (fetched) {
+            root = fetched;
+            // Fetch ancestors between root and focused
+            const anc = await fetchAncestors(focusedEvent);
+            if (!cancelled) setAncestors(anc.filter((a) => a.id !== root.id));
+          } else {
+            // Root not found, treat focused as root
+            root = focusedEvent;
+          }
+        }
+
+        if (cancelled) return;
+        setRootEvent(root);
+
+        // Fetch all thread events and build tree
+        const events = await fetchThreadEvents(root.id);
+        if (cancelled) return;
+
+        // Include root in the event set
+        const allEvents = [root, ...events.filter((e) => e.id !== root.id)];
+        const built = buildThreadTree(root.id, allEvents);
+        setTree(built);
+      } catch (err) {
+        console.error("Failed to load thread:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadThread();
+    return () => { cancelled = true; };
+  }, [focusedEvent.id]);
+
+  // Scroll to focused note after tree renders (if not root)
+  useEffect(() => {
+    if (!loading && rootEvent && focusedEvent.id !== rootEvent.id) {
+      // Small delay to allow DOM to render
+      const timer = setTimeout(() => {
+        const el = document.querySelector(`[data-note-id="${focusedEvent.id}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, rootEvent?.id, focusedEvent.id]);
+
+  const handleReplyInThread = (event: NDKEvent) => {
+    setReplyTarget(event);
+    setTimeout(() => replyRef.current?.focus(), 50);
+  };
+
+  const effectiveReplyTarget = replyTarget ?? rootEvent;
 
   const handleReply = async () => {
-    if (!replyText.trim() || replying) return;
+    if (!replyText.trim() || replying || !rootEvent) return;
     setReplying(true);
     try {
-      const replyEvent = await publishReply(replyText.trim(), { id: event.id, pubkey: event.pubkey });
+      const target = effectiveReplyTarget ?? rootEvent;
+      const rootArg = target.id !== rootEvent.id
+        ? { id: rootEvent.id, pubkey: rootEvent.pubkey }
+        : undefined;
+
+      const replyEvent = await publishReply(
+        replyText.trim(),
+        { id: target.id, pubkey: target.pubkey },
+        rootArg,
+      );
       setReplyText("");
       setReplySent(true);
-      // Inject reply locally so it appears immediately
-      setReplies((prev) => [...prev, replyEvent]);
-      // Also try fetching from relay in background
-      fetchReplies(event.id).then((updated) => setReplies(updated));
+      setReplyTarget(null);
+
+      // Optimistically insert into tree
+      if (tree) {
+        const allEvents = collectEvents(tree);
+        allEvents.push(replyEvent);
+        const rebuilt = buildThreadTree(rootEvent.id, allEvents);
+        setTree(rebuilt);
+      }
+
       setTimeout(() => setReplySent(false), 2000);
     } finally {
       setReplying(false);
@@ -201,79 +167,123 @@ export function ThreadView() {
         <h1 className="text-text text-sm font-medium">Thread</h1>
       </header>
 
-      <div className="flex-1 overflow-y-auto">
-        {/* Root note */}
-        <RootNote event={event} />
-
-        {/* Reply composer */}
-        {loggedIn && (
-          <div className="border-b border-border px-4 py-3">
-            <textarea
-              ref={replyRef}
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Write a reply…"
-              rows={2}
-              className="w-full bg-transparent text-text text-[13px] placeholder:text-text-dim resize-none focus:outline-none"
-            />
-            <div className="flex items-center justify-end gap-2 mt-1">
-              <div className="relative">
-                <button
-                  onClick={() => setShowReplyEmoji((v) => !v)}
-                  title="Insert emoji"
-                  className="text-text-dim hover:text-text text-[12px] transition-colors"
-                >
-                  ☺
-                </button>
-                {showReplyEmoji && (
-                  <EmojiPicker
-                    onSelect={(emoji) => {
-                      const ta = replyRef.current;
-                      if (ta) {
-                        const start = ta.selectionStart ?? replyText.length;
-                        const end = ta.selectionEnd ?? replyText.length;
-                        setReplyText(replyText.slice(0, start) + emoji + replyText.slice(end));
-                        setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + emoji.length; ta.focus(); }, 0);
-                      } else {
-                        setReplyText((t) => t + emoji);
-                      }
-                    }}
-                    onClose={() => setShowReplyEmoji(false)}
-                  />
-                )}
-              </div>
-              <span className="text-text-dim text-[10px]">Ctrl+Enter</span>
-              <button
-                onClick={handleReply}
-                disabled={!replyText.trim() || replying}
-                className="px-3 py-1 text-[11px] bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                {replySent ? "replied ✓" : replying ? "posting…" : "reply"}
-              </button>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        {/* Loading shimmer */}
+        {loading && (
+          <div className="px-4 py-6 space-y-4">
+            <div className="animate-pulse space-y-3">
+              <div className="h-10 bg-bg-raised rounded" />
+              <div className="h-24 bg-bg-raised rounded" />
+              <div className="h-16 bg-bg-raised rounded ml-4" />
+              <div className="h-16 bg-bg-raised rounded ml-4" />
             </div>
           </div>
         )}
 
-        {/* Replies */}
-        {loading && (
-          <div className="px-4 py-6 text-text-dim text-[12px] text-center">
-            Loading replies…
-          </div>
+        {!loading && tree && rootEvent && (
+          <>
+            {/* Ancestors (when opening a deep reply) */}
+            <AncestorChain ancestors={ancestors} />
+
+            {/* Root note rendered via tree */}
+            <div data-note-id={tree.event.id}>
+              <NoteCard
+                event={tree.event}
+                focused={tree.event.id === focusedEvent.id}
+                onReplyInThread={handleReplyInThread}
+              />
+            </div>
+
+            {/* Reply composer */}
+            {loggedIn && !!getNDK().signer && (
+              <div className="border-b border-border px-4 py-3">
+                {replyTarget && replyTarget.id !== rootEvent.id && (
+                  <ReplyTargetBadge event={replyTarget} onClear={() => setReplyTarget(null)} />
+                )}
+                <textarea
+                  ref={replyRef}
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Write a reply..."
+                  rows={2}
+                  className="w-full bg-transparent text-text text-[13px] placeholder:text-text-dim resize-none focus:outline-none"
+                />
+                <div className="flex items-center justify-end gap-2 mt-1">
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowReplyEmoji((v) => !v)}
+                      title="Insert emoji"
+                      className="text-text-dim hover:text-text text-[12px] transition-colors"
+                    >
+                      ☺
+                    </button>
+                    {showReplyEmoji && (
+                      <EmojiPicker
+                        onSelect={(emoji) => {
+                          const ta = replyRef.current;
+                          if (ta) {
+                            const start = ta.selectionStart ?? replyText.length;
+                            const end = ta.selectionEnd ?? replyText.length;
+                            setReplyText(replyText.slice(0, start) + emoji + replyText.slice(end));
+                            setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + emoji.length; ta.focus(); }, 0);
+                          } else {
+                            setReplyText((t) => t + emoji);
+                          }
+                        }}
+                        onClose={() => setShowReplyEmoji(false)}
+                      />
+                    )}
+                  </div>
+                  <span className="text-text-dim text-[10px]">Ctrl+Enter</span>
+                  <button
+                    onClick={handleReply}
+                    disabled={!replyText.trim() || replying}
+                    className="px-3 py-1 text-[11px] bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    {replySent ? "replied ✓" : replying ? "posting..." : "reply"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Thread tree (children of root) */}
+            {tree.children.length === 0 && (
+              <div className="px-4 py-6 text-text-dim text-[12px] text-center">
+                No replies yet.
+              </div>
+            )}
+
+            {tree.children
+              .filter((c) => !mutedPubkeys.includes(c.event.pubkey) && !contentMatchesMutedKeyword(c.event.content))
+              .map((child) => (
+                <ThreadNodeComponent
+                  key={child.event.id}
+                  node={child}
+                  onReplyInThread={handleReplyInThread}
+                  focusedId={focusedEvent.id}
+                  mutedPubkeys={mutedPubkeys}
+                  contentMatchesMutedKeyword={contentMatchesMutedKeyword}
+                />
+              ))}
+          </>
         )}
 
-        {!loading && replies.length === 0 && (
+        {!loading && !tree && (
           <div className="px-4 py-6 text-text-dim text-[12px] text-center">
-            No replies yet.
+            Could not load thread.
           </div>
         )}
-
-        {replies
-          .filter((r) => !mutedPubkeys.includes(r.pubkey) && !contentMatchesMutedKeyword(r.content))
-          .map((reply) => (
-          <NoteCard key={reply.id} event={reply} />
-        ))}
       </div>
     </div>
   );
+}
+
+/** Collect all events from a tree into a flat array. */
+function collectEvents(node: ThreadNode): NDKEvent[] {
+  const result: NDKEvent[] = [node.event];
+  for (const child of node.children) {
+    result.push(...collectEvents(child));
+  }
+  return result;
 }

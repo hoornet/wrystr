@@ -7,9 +7,10 @@ import { EmojiPicker } from "../shared/EmojiPicker";
 interface InlineReplyBoxProps {
   event: NDKEvent;
   name: string;
+  rootEvent?: { id: string; pubkey: string };
 }
 
-export function InlineReplyBox({ event, name }: InlineReplyBoxProps) {
+export function InlineReplyBox({ event, name, rootEvent }: InlineReplyBoxProps) {
   const [replyText, setReplyText] = useState("");
   const [replying, setReplying] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
@@ -23,7 +24,7 @@ export function InlineReplyBox({ event, name }: InlineReplyBoxProps) {
     setReplying(true);
     setReplyError(null);
     try {
-      await publishReply(replyText.trim(), { id: event.id, pubkey: event.pubkey });
+      await publishReply(replyText.trim(), { id: event.id, pubkey: event.pubkey }, rootEvent);
       setReplyText("");
       setReplySent(true);
       adjustReplyCount(1);

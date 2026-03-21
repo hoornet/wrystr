@@ -1,5 +1,5 @@
 export { getNDK, connectToRelays, getStoredRelayUrls, addRelay, removeRelay } from "./core";
-export { fetchGlobalFeed, fetchFollowFeed, fetchUserNotes, fetchUserNotesNIP65, fetchNoteById, fetchReplies, publishNote, publishReply, publishRepost, publishQuote, fetchHashtagFeed } from "./notes";
+export { fetchGlobalFeed, fetchFollowFeed, fetchUserNotes, fetchUserNotesNIP65, fetchNoteById, fetchReplies, publishNote, publishReply, publishRepost, publishQuote, fetchHashtagFeed, fetchThreadEvents, fetchAncestors } from "./notes";
 export { publishProfile, publishContactList, fetchProfile, fetchFollowSuggestions, fetchMentions, fetchNewFollowers } from "./social";
 export { publishArticle, fetchArticle, fetchAuthorArticles, fetchArticleFeed, searchArticles, fetchByAddr } from "./articles";
 export { publishReaction, fetchReactionCount, fetchReplyCount, fetchZapCount, fetchBatchEngagement, fetchZapsReceived, fetchZapsSent } from "./engagement";

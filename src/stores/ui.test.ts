@@ -9,6 +9,7 @@ describe("useUIStore", () => {
       selectedPubkey: null,
       selectedNote: null,
       previousView: "feed",
+      viewStack: [],
       feedTab: "global",
       pendingSearch: null,
       pendingDMPubkey: null,

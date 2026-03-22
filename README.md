@@ -42,6 +42,7 @@ sudo dnf install gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-liba
 - **OS keychain integration** — nsec stored in macOS Keychain / Windows Credential Manager / Linux Secret Service; sessions survive restarts
 
 **Feed & content**
+- **Live streaming feed** — persistent relay subscriptions deliver new notes in real-time; no manual refresh needed
 - Global and following feeds with live relay connection
 - **Language/script feed filter** — filter by writing system (Latin, CJK, Cyrillic, Arabic, Korean, etc.) via dropdown in feed header; uses Unicode detection + NIP-32 language tags
 - Compose notes, inline replies, **nested thread trees** with reply-to-any-note and multi-level back navigation
@@ -88,6 +89,7 @@ sudo dnf install gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-liba
 - **NIP-05 verification badges** — cached verification with green checkmark on note cards
 
 **Performance & UX**
+- **Resilient relay connectivity** — all relay queries have timeouts (no more infinite loading); automatic reconnection with NDK instance reset as last resort; feed diagnostics for debugging
 - **Auto-updater** — "Update & restart" banner when a new version is available
 - **SQLite note cache** — feed loads instantly from local cache on startup; profiles cached for immediate avatar display
 - **Data export** — export bookmarks, follows, and relay list as JSON via native save dialog

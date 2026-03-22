@@ -69,18 +69,19 @@ jobs:
 
             > **Windows note:** The installer is not yet code-signed. Windows SmartScreen will show an "Unknown publisher" warning — click "More info → Run anyway" to install.
 
-            ### New in v0.9.0 — Thread Conversation Overhaul
-            Major upgrade to how conversations work in Wrystr.
-            - **Nested thread trees** — replies displayed as visual trees with indentation and connecting lines, not a flat list
-            - **Reply to any note in thread** — click reply on any note and the reply box opens right below it with proper NIP-10 root + reply marker tagging
-            - **Recursive reply fetching** — deep replies discovered with a 2-round-trip fetch strategy; previously invisible conversations now surfaced
-            - **Ancestor chain** — opening a deep reply from the feed shows compact parent notes above the root for full context
-            - **Multi-level back navigation** — navigation stack (up to 20 levels) retraces your exact path through threads
-            - **Smart "replying to" links** — scrolls to the parent note if already visible instead of re-opening the same view
-            - **Thread collapse** — threads with many replies collapse after 3 with "show N more" button
-            - **Mute filtering in trees** — muted subtrees pruned with "N replies hidden" indicator
-            - **Loading shimmer** — animated skeleton while thread data loads
-            - **Podcast subscriptions** — My Podcasts tab, episode playback with V4V streaming sats
+            ### New in v0.9.1 — Live Feed & Relay Reliability
+            Fundamental upgrade to how Wrystr connects to relays and delivers content.
+            - **Live streaming feed** — persistent relay subscriptions deliver new notes in real-time; no manual refresh needed
+            - **Timeouts on all relay fetches** — every relay query across the entire codebase now has a timeout (5–12s). No view can hang indefinitely — Articles, DMs, Notifications, Zaps, Trending all fixed
+            - **Fixed relay death spiral** — removed aggressive liveness probe that was disconnecting working relays; relay connections now stay stable
+            - **NDK subscription hygiene** — prevents stale subscription reuse; `since` filters ensure feed freshness
+            - **Feed diagnostics** — developer console helpers for tracking fetch timing, event freshness, and relay states
+            - **Background relay recovery** — automatic NDK instance reset after 30s of continuous failure; preserves login state
+            - **Fixed Articles Latest** — no longer wipes results on follow list changes
+            - **Fixed Zap History** — proper loading state; increased timeout for zap queries
+
+            ### Previous: v0.9.0 — Thread Conversation Overhaul
+            - Nested thread trees, reply-to-any-note, recursive reply fetching, ancestor chain, multi-level back navigation, thread collapse, mute filtering in trees, podcast subscriptions
 
             ### Previous: v0.8.4 — Codebase Refactor & Bug Fixes
             - Codebase refactor (split 5 files into focused modules), Supported NIPs table in README, bug fixes
@@ -91,106 +92,15 @@ jobs:
             ### Previous: v0.8.0 — Polish, Portability & Discovery
             - Profile banner polish, data export, relay recommendations, reading list tracking, trending hashtags
 
-            ### Previous: v0.7.1 — Relay Health Checker & Advanced Search
-            - **Relay health checker** — NIP-11 info fetch + WebSocket latency probing; relays classified as online/slow/offline; expandable cards show software, description, supported NIPs; "Remove dead" strips offline relays; "Republish list" publishes cleaned NIP-65 relay list
-            - **Advanced search** — ants-inspired query parser with modifiers: `by:author`, `mentions:npub`, `kind:N`, `is:article`, `has:image`, `since:2026-01-01`, `until:2026-12-31`, `#hashtag`, `"exact phrase"`, boolean `OR`; NIP-05 resolution for author lookups; search help panel
-
-            ### Previous: v0.7.0 — Writer Tools & Upload Fix
-            - NIP-98 HTTP Auth uploads with fallback services
-            - Markdown toolbar with keyboard shortcuts (Ctrl+B/I/K)
-            - Multi-draft management with draft list
-            - Cover image file picker, article bookmarks (NIP-51 `a` tags)
-            - Upload moved to TypeScript, draft count badge
-
-            ### Previous: v0.6.1 — Media Upload & Feed Polish
-            - Native file picker, file path paste upload, mention name resolution, connection stability
-
-            ### Previous: v0.6.0 — Long-form Article Experience
-            - **Article discovery feed** — dedicated "Articles" view in sidebar with Latest and Following tabs; browse kind 30023 articles from all relays or just followed authors
-            - **Article cards** — title, summary snippet, author avatar+name, cover image thumbnail, reading time, tag chips
-            - **Article search** — search notes, articles, and people in parallel; articles tab in search results; supports full-text (NIP-50) and hashtag search for articles
-            - **Profile Articles tab** — Notes/Articles tab toggle on every profile; browse any author's long-form posts
-            - **Article reader polish** — estimated reading time, bookmark/save, like (reaction), zap — all in header and footer
-
-            ### Previous: v0.5.0 — Sharing & Thread Indicators
-            - **Note sharing** — share button on every note copies a `nostr:nevent1…` URI to clipboard; works when logged out too
-            - **Reply count** — notes now show reply count next to the reply button; updates optimistically when you reply
-
-            ### Previous: v0.4.1 — Media & Feed Fixes
-            - **Video player** — direct video URLs (.mp4, .webm, .mov, etc.) now render as inline players with native controls
-            - **Audio player** — direct audio URLs (.mp3, .wav, .flac, etc.) render as inline audio players with filename display
-            - **YouTube/Vimeo rich cards** — YouTube links show thumbnail previews, Vimeo/Spotify/Tidal show branded cards; all open in external browser
-            - **Media detection** — parser now recognizes YouTube, Vimeo, Spotify, and Tidal URLs as distinct media types
-            - **Fix: video clicks opening thread** — media elements rendered outside the clickable area so interactions don't navigate away
-            - **Fix: post not visible on Following tab** — publishing a note while on Following now correctly shows it in the feed
-
-            ### New in v0.4.0 — Phase 3: Discovery & Polish
-            - **Image lightbox** — click any image to view full-screen; Escape to close, arrow keys to navigate multi-image posts
-            - **Bookmarks (NIP-51)** — save/unsave notes with one click; dedicated Bookmarks view in sidebar; synced to relays (kind 10003)
-            - **Discover people** — "follows of follows" suggestions on the Search page with mutual follow counts and one-click follow
-            - **Language/script feed filter** — dropdown in feed header filters by writing system (Latin, CJK, Cyrillic, Arabic, Korean, etc.); uses Unicode detection + NIP-32 language tags
-            - **UI polish** — skeleton loading placeholders, improved empty states with helpful prompts, subtle view fade transitions
-
-            ### New in v0.3.1
-            - **Feed tab persists across navigation** — back button now returns to the correct tab (Global/Following) instead of always resetting to Global
-            - **Available on AUR** — Arch/Manjaro users can install with `yay -S wrystr-git`
-
-            ### New in v0.3.0
-            - **Instant feedback** — posted notes appear in feed immediately; thread replies show up without waiting for relay
-            - **Image paste fix** — uploads now use Tauri HTTP plugin, fixing "Failed to fetch" on Windows
-            - **Sent zaps visible** — zap history now correctly shows sent zaps (queries kind 9735 receipts instead of ephemeral kind 9734)
-            - **Reply-to @name clickable** — clicking the @name in "↩ replying to @name" now opens that person's profile
-            - **Feed refresh on login** — switching or adding an account immediately loads the new account's feed
-
-            ### New in v0.2.8
-            - **Fix: OS keychain was a no-op** — `keyring` crate had no platform backends enabled; nsec keys now actually persist to Windows Credential Manager, macOS Keychain, and Linux keyutils
-            - **Fix: multi-account persistence** — all nsec accounts restored from keychain on startup; account switching no longer gets stuck after restart
-            - **Fix: account switcher** — shows re-login prompt when keychain entry is missing
-
-            ### New in v0.2.6
-            - **Fix: auto-updater** — added `createUpdaterArtifacts: true` + regenerated signing key; `.sig` files and `latest.json` are now correctly produced by CI
-
-            ### New in v0.2.3
-            - **Fix: auto-updater** — `latest.json` now correctly generated via `includeUpdaterJson: true`; users on older versions will receive the update banner
-
-            ### New in v0.2.0 — Phase 2: Engagement & Reach
-            - **Feed reply context** — replies show "↩ replying to @name" above the note; click to open the parent thread
-            - **NIP-65 outbox model** — reads kind 10002 relay lists so you see notes from people who publish to their own relays; "Publish relay list to Nostr" button in Settings
-            - **Notifications view** — 🔔 sidebar nav item; lists recent mentions with unread badge; badge clears on open
-            - **DM unread badge** — messages nav item shows count of conversations with new messages; clears when conversation is opened
-            - **Keyboard shortcuts** — `n` focus compose, `/` focus search, `j`/`k` navigate feed with highlight, `Esc` go back, `?` help overlay
-
-            ### New in 0.1.7
-            - **Per-account Lightning wallet** — NWC connection is now stored per account; switching accounts loads the correct wallet automatically
-            - **New account creation in-app** — "Add account" now has a "New account" tab that generates a fresh keypair (no need to go through onboarding again)
-            - **Zap button on thread root note** — like and zap the main note in a thread view
-            - **Conditional zap button** — zap only shown for profiles that have a Lightning address (lud16/lud06)
-            - **Image paste in compose** — paste an image from clipboard → auto-uploads to nostr.build and inserts the URL
-            - **Account switcher redesign** — cleaner dropdown, sign-out/remove moved into menu
-            - **GitHub Sponsors link** in Support page
-            - Fix: posts no longer sign under the wrong account during rapid account switches
-
-            ### New in 0.1.6
-            - **Linux packaging** — ships `.deb` (Ubuntu/Debian/Mint) and `.rpm` (Fedora/openSUSE) instead of AppImage; Arch users see PKGBUILD in the repo
-
-            ### New in 0.1.5
-            - **Article reader** — click any `nostr:naddr1…` link to open it in a clean reader with cover image, author, tags, and full markdown; zap the author inline
-            - **Zap counts on notes** — ⚡ N sats shown on each note
-            - **Quoted note preview** — `nostr:note1…` / `nostr:nevent1…` references render as inline bordered cards; click to open thread
-            - **Auto-updater** — "Update & restart" banner appears when a new version is available
-
-            ### New in 0.1.4
-            - **Sidebar** — explicit ‹/› collapse toggle, state persisted across restarts
-            - **Profile image upload** — uploads to nostr.build, auto-fills URL field
-            - **NIP-05 live verification** — real-time domain check with ✓/✗ status
-            - **Search improvements** — NIP-50 relay detection, hashtag fallback suggestion
-
-            ### New in 0.1.3
-            - **OS keychain** — sessions survive restarts (macOS Keychain, Windows Credential Manager, Linux Secret Service)
-            - **Multi-account switcher** — instant switch from sidebar footer
-            - **SQLite note + profile cache** — feed loads instantly on startup
-            - **Quote & Repost** (NIP-18), **Mute users** (NIP-51), **NWC setup wizard**
-            - **System tray**, **Zap history**, **About / Support page**
+            ### Previous highlights
+            - v0.7.1: Relay health checker, advanced search with modifiers
+            - v0.7.0: NIP-98 uploads, markdown toolbar, multi-draft management
+            - v0.6.0: Article discovery feed, article cards, article search, profile Articles tab
+            - v0.5.0: Note sharing, reply counts
+            - v0.4.0: Image lightbox, bookmarks (NIP-51), discover people, language filter
+            - v0.3.0: Instant feedback, image paste, feed refresh on login
+            - v0.2.0: Feed reply context, NIP-65 outbox, notifications, DM badges, keyboard shortcuts
+            - v0.1.3–v0.1.7: OS keychain, multi-account, SQLite cache, zap history, DMs, system tray
 
             ### Install
 

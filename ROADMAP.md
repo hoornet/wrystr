@@ -126,6 +126,16 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 
 ## What's already shipped
 
+### v0.9.1 — Live Feed & Relay Reliability
+- **Live streaming feed** — persistent relay subscriptions (`closeOnEose: false`) deliver new notes in real-time; no manual refresh needed. Inspired by Wisp's streaming architecture.
+- **Timeouts on all relay fetches** — every `fetchEvents` call across the entire codebase now has a timeout (5–12s depending on query type). No view can hang indefinitely.
+- **Fixed relay death spiral** — removed aggressive liveness probe that was force-disconnecting working relays; `ensureConnected` now trusts `relay.connected` and only reconnects when zero relays are connected
+- **NDK subscription hygiene** — `groupable: false` prevents NDK from batching/reusing stale subscriptions; `since` filters on global (2h) and follow (24h) feeds ensure freshness
+- **Feed diagnostics** — `feedDiagnostics.ts` tracks every feed fetch with timing, event freshness, relay states; console helpers `__feedDiag()`, `__feedDiagRelays()`; periodic relay snapshots
+- **NDK reset as last resort** — `resetNDK()` destroys and recreates the NDK instance (preserving signer) when relay connections are unrecoverable; triggered automatically after 30s of continuous failure
+- **Fixed Articles Latest** — article feed no longer wipes results when follows array changes
+- **Fixed Zap History** — loading state initialised correctly; increased timeout for zap queries (12s)
+
 ### v0.9.0 — Thread Conversation Overhaul
 - **Nested thread trees** — replies displayed as visual trees with indentation and connecting border lines; see who replied to whom at a glance
 - **Reply to any note** — inline reply boxes open directly below the note you're replying to; proper NIP-10 root + reply marker tagging

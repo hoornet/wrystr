@@ -1,49 +1,26 @@
-import { NDKEvent, NDKFilter, NDKKind, NDKRelaySet, NDKSubscriptionCacheUsage, nip19 } from "@nostr-dev-kit/ndk";
-import { getNDK, getStoredRelayUrls } from "./core";
+import { NDKEvent, NDKFilter, NDKKind, NDKRelaySet, nip19 } from "@nostr-dev-kit/ndk";
+import { getNDK, getStoredRelayUrls, fetchWithTimeout, withTimeout, FEED_TIMEOUT, THREAD_TIMEOUT, SINGLE_TIMEOUT } from "./core";
 import { fetchUserRelayList } from "./relays";
 
 export async function fetchGlobalFeed(limit: number = 50): Promise<NDKEvent[]> {
   const instance = getNDK();
-
-  const filter: NDKFilter = {
-    kinds: [NDKKind.Text],
-    limit,
-  };
-
-  const events = await instance.fetchEvents(filter, {
-    cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY,
-  });
-
+  const filter: NDKFilter = { kinds: [NDKKind.Text], limit };
+  const events = await fetchWithTimeout(instance, filter, FEED_TIMEOUT);
   return Array.from(events).sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
 }
 
 export async function fetchFollowFeed(pubkeys: string[], limit = 80): Promise<NDKEvent[]> {
   if (pubkeys.length === 0) return [];
   const instance = getNDK();
-
-  const filter: NDKFilter = {
-    kinds: [NDKKind.Text],
-    authors: pubkeys,
-    limit,
-  };
-
-  const events = await instance.fetchEvents(filter, {
-    cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY,
-  });
-
+  const filter: NDKFilter = { kinds: [NDKKind.Text], authors: pubkeys, limit };
+  const events = await fetchWithTimeout(instance, filter, FEED_TIMEOUT);
   return Array.from(events).sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
 }
 
 export async function fetchUserNotes(pubkey: string, limit = 30): Promise<NDKEvent[]> {
   const instance = getNDK();
-  const filter: NDKFilter = {
-    kinds: [NDKKind.Text],
-    authors: [pubkey],
-    limit,
-  };
-  const events = await instance.fetchEvents(filter, {
-    cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY,
-  });
+  const filter: NDKFilter = { kinds: [NDKKind.Text], authors: [pubkey], limit };
+  const events = await fetchWithTimeout(instance, filter, FEED_TIMEOUT);
   return Array.from(events).sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
 }
 
@@ -51,11 +28,11 @@ export async function fetchUserNotesNIP65(pubkey: string, limit = 30): Promise<N
   const instance = getNDK();
   const filter: NDKFilter = { kinds: [NDKKind.Text], authors: [pubkey], limit };
   try {
-    const relayList = await fetchUserRelayList(pubkey);
+    const relayList = await withTimeout(fetchUserRelayList(pubkey), SINGLE_TIMEOUT, { read: [], write: [] });
     if (relayList.write.length > 0) {
       const merged = Array.from(new Set([...relayList.write, ...getStoredRelayUrls()]));
       const relaySet = NDKRelaySet.fromRelayUrls(merged, instance);
-      const events = await instance.fetchEvents(filter, { cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY }, relaySet);
+      const events = await fetchWithTimeout(instance, filter, FEED_TIMEOUT, relaySet);
       return Array.from(events).sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
     }
   } catch { /* fallthrough */ }
@@ -65,21 +42,14 @@ export async function fetchUserNotesNIP65(pubkey: string, limit = 30): Promise<N
 export async function fetchNoteById(eventId: string): Promise<NDKEvent | null> {
   const instance = getNDK();
   const filter: NDKFilter = { ids: [eventId], limit: 1 };
-  const events = await instance.fetchEvents(filter, {
-    cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY,
-  });
+  const events = await fetchWithTimeout(instance, filter, SINGLE_TIMEOUT);
   return Array.from(events)[0] ?? null;
 }
 
 export async function fetchReplies(eventId: string): Promise<NDKEvent[]> {
   const instance = getNDK();
-  const filter: NDKFilter = {
-    kinds: [NDKKind.Text],
-    "#e": [eventId],
-  };
-  const events = await instance.fetchEvents(filter, {
-    cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY,
-  });
+  const filter: NDKFilter = { kinds: [NDKKind.Text], "#e": [eventId] };
+  const events = await fetchWithTimeout(instance, filter, FEED_TIMEOUT);
   return Array.from(events).sort((a, b) => (a.created_at ?? 0) - (b.created_at ?? 0));
 }
 
@@ -107,7 +77,6 @@ export async function publishReply(
   event.content = content;
 
   if (rootEvent && rootEvent.id !== replyTo.id) {
-    // Replying to a reply — emit both root and reply markers (NIP-10)
     const pTags = new Set([rootEvent.pubkey, replyTo.pubkey]);
     event.tags = [
       ["e", rootEvent.id, "", "root"],
@@ -115,7 +84,6 @@ export async function publishReply(
       ...Array.from(pTags).map((p) => ["p", p]),
     ];
   } else {
-    // Replying directly to root
     event.tags = [
       ["e", replyTo.id, "", "root"],
       ["p", replyTo.pubkey],
@@ -130,7 +98,7 @@ export async function publishRepost(event: NDKEvent): Promise<void> {
   if (!instance.signer) throw new Error("Not logged in");
 
   const repost = new NDKEvent(instance);
-  repost.kind = NDKKind.Repost; // kind 6
+  repost.kind = NDKKind.Repost;
   repost.content = JSON.stringify(event.rawEvent());
   repost.tags = [
     ["e", event.id!, "", "mention"],
@@ -161,20 +129,16 @@ export async function fetchThreadEvents(rootId: string): Promise<NDKEvent[]> {
 
   // Round-trip 1: all events tagging the root
   const directFilter: NDKFilter = { kinds: [NDKKind.Text], "#e": [rootId] };
-  const directEvents = await instance.fetchEvents(directFilter, {
-    cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY,
-  });
+  const directEvents = await fetchWithTimeout(instance, directFilter, THREAD_TIMEOUT);
 
   const allEvents = new Map<string, NDKEvent>();
   for (const e of directEvents) allEvents.set(e.id, e);
 
-  // Round-trip 2: replies to any event in the thread (catches deep replies that only tag parent)
+  // Round-trip 2: replies to any event in the thread
   const knownIds = Array.from(allEvents.keys());
   if (knownIds.length > 0) {
     const deepFilter: NDKFilter = { kinds: [NDKKind.Text], "#e": knownIds };
-    const deepEvents = await instance.fetchEvents(deepFilter, {
-      cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY,
-    });
+    const deepEvents = await fetchWithTimeout(instance, deepFilter, THREAD_TIMEOUT);
     for (const e of deepEvents) allEvents.set(e.id, e);
   }
 
@@ -189,7 +153,6 @@ export async function fetchAncestors(event: NDKEvent, maxDepth = 5): Promise<NDK
     const eTags = current.tags.filter((t) => t[0] === "e");
     if (eTags.length === 0) break;
 
-    // Walk up: prefer "reply" marker, then "root", then last e-tag
     const parentId =
       eTags.find((t) => t[3] === "reply")?.[1] ??
       eTags.find((t) => t[3] === "root")?.[1] ??
@@ -198,7 +161,7 @@ export async function fetchAncestors(event: NDKEvent, maxDepth = 5): Promise<NDK
     if (!parentId) break;
     const parent = await fetchNoteById(parentId);
     if (!parent) break;
-    ancestors.unshift(parent); // root-first order
+    ancestors.unshift(parent);
     current = parent;
   }
 
@@ -207,13 +170,7 @@ export async function fetchAncestors(event: NDKEvent, maxDepth = 5): Promise<NDK
 
 export async function fetchHashtagFeed(tag: string, limit = 100): Promise<NDKEvent[]> {
   const instance = getNDK();
-  const filter: NDKFilter = {
-    kinds: [NDKKind.Text],
-    "#t": [tag.toLowerCase()],
-    limit,
-  };
-  const events = await instance.fetchEvents(filter, {
-    cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY,
-  });
+  const filter: NDKFilter = { kinds: [NDKKind.Text], "#t": [tag.toLowerCase()], limit };
+  const events = await fetchWithTimeout(instance, filter, FEED_TIMEOUT);
   return Array.from(events).sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
 }

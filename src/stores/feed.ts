@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { NDKEvent } from "@nostr-dev-kit/ndk";
-import { connectToRelays, fetchGlobalFeed, fetchBatchEngagement, fetchTrendingCandidates, getNDK } from "../lib/nostr";
+import { connectToRelays, ensureConnected, resetNDK, fetchGlobalFeed, fetchBatchEngagement, fetchTrendingCandidates, getNDK } from "../lib/nostr";
+
 import { dbLoadFeed, dbSaveNotes } from "../lib/db";
+import { diagWrapFetch, logDiag, startRelaySnapshots, getRelayStates } from "../lib/feedDiagnostics";
 
 const TRENDING_CACHE_KEY = "wrystr_trending_cache";
 const TRENDING_TTL = 10 * 60 * 1000; // 10 minutes
@@ -34,45 +36,49 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   connect: async () => {
     try {
       set({ error: null });
+      const connectStart = performance.now();
       await connectToRelays();
       set({ connected: true });
+      const connectMs = Math.round(performance.now() - connectStart);
+      logDiag({
+        ts: new Date().toISOString(),
+        action: "relay_connect",
+        durationMs: connectMs,
+        relayStates: getRelayStates(),
+        details: `Initial connection complete`,
+      });
+      startRelaySnapshots();
 
-      // Monitor relay connectivity with grace period.
-      // NDK's relay.connected property is unreliable — it can briefly
-      // read false during WebSocket reconnection or message processing,
-      // even when data flows fine. We also check relay.status and use
-      // a generous grace period before marking offline.
-      const ndk = getNDK();
+      // Monitor relay connectivity — check every 5s, reconnect if needed.
+      // Always call getNDK() fresh — instance may be replaced by resetNDK().
       let offlineStreak = 0;
-      let lastSuccessfulFetch = Date.now();
-
-      // Mark connected whenever a successful fetch happens anywhere
-      const originalFetch = ndk.fetchEvents.bind(ndk);
-      ndk.fetchEvents = async (...args: Parameters<typeof ndk.fetchEvents>) => {
-        const result = await originalFetch(...args);
-        if (result.size > 0) {
-          lastSuccessfulFetch = Date.now();
-          if (!get().connected) set({ connected: true });
-          offlineStreak = 0;
-        }
-        return result;
-      };
 
       const checkConnection = () => {
-        const relays = Array.from(ndk.pool?.relays?.values() ?? []);
+        const currentNdk = getNDK();
+        const relays = Array.from(currentNdk.pool?.relays?.values() ?? []);
         const hasConnected = relays.some((r) => r.connected);
-        // Also consider connected if we fetched data recently (within 30s)
-        const recentFetch = Date.now() - lastSuccessfulFetch < 30000;
 
-        if (hasConnected || recentFetch) {
+        if (hasConnected) {
           offlineStreak = 0;
           if (!get().connected) set({ connected: true });
         } else {
           offlineStreak++;
-          // Only mark offline after 5 consecutive checks (25s grace)
-          if (offlineStreak >= 5 && get().connected) {
+          // Mark offline after 3 consecutive checks (15s grace)
+          if (offlineStreak >= 3 && get().connected) {
             set({ connected: false });
-            ndk.connect().catch(() => {});
+            logDiag({ ts: new Date().toISOString(), action: "connection_lost", details: `No relays connected after ${offlineStreak} checks` });
+            // Nuclear reset after 6 consecutive failures (30s)
+            if (offlineStreak >= 6) {
+              offlineStreak = 0;
+              resetNDK().then(() => {
+                if (getNDK().pool?.relays) {
+                  const after = Array.from(getNDK().pool.relays.values());
+                  if (after.some((r) => r.connected)) set({ connected: true });
+                }
+              }).catch(() => {});
+            } else {
+              currentNdk.connect().catch(() => {});
+            }
           }
         }
       };
@@ -98,7 +104,8 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     if (get().loading) return;
     set({ loading: true, error: null });
     try {
-      const fresh = await fetchGlobalFeed(80);
+      await ensureConnected();
+      const fresh = await diagWrapFetch("global_fetch", () => fetchGlobalFeed(80));
 
       // Merge with currently displayed notes so cached notes aren't lost
       // if the relay returns fewer results than the cache had.

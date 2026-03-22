@@ -1,4 +1,36 @@
-import NDK, { NDKRelay } from "@nostr-dev-kit/ndk";
+import NDK, { NDKEvent, NDKFilter, NDKRelay, NDKRelaySet, NDKSubscriptionCacheUsage } from "@nostr-dev-kit/ndk";
+
+// ─── Fetch timeout helper ───────────────────────────────────────────
+
+/** Race a promise against a timeout. Returns fallback on timeout. */
+export function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => {
+      console.warn(`[Wrystr] Fetch timed out after ${ms}ms`);
+      resolve(fallback);
+    }, ms)),
+  ]);
+}
+
+export const FEED_TIMEOUT = 8000;    // 8s for feed fetches
+export const THREAD_TIMEOUT = 10000; // 10s per thread round-trip
+export const SINGLE_TIMEOUT = 5000;  // 5s for single event lookups
+
+const EMPTY_SET = new Set<NDKEvent>();
+
+/** Fetch events with a timeout — returns empty set if relay hangs. */
+export async function fetchWithTimeout(
+  instance: NDK,
+  filter: NDKFilter,
+  timeoutMs: number,
+  relaySet?: NDKRelaySet,
+): Promise<Set<NDKEvent>> {
+  const promise = relaySet
+    ? instance.fetchEvents(filter, { cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY }, relaySet)
+    : instance.fetchEvents(filter, { cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY });
+  return withTimeout(promise, timeoutMs, EMPTY_SET);
+}
 
 export const RELAY_STORAGE_KEY = "wrystr_relays";
 
@@ -29,6 +61,41 @@ export function getNDK(): NDK {
     });
   }
   return ndk;
+}
+
+/**
+ * Destroy the current NDK instance and create a fresh one.
+ * Preserves the signer (login state) but resets all relay connections.
+ * Use as a last resort when relay connections are unrecoverable.
+ */
+export async function resetNDK(): Promise<void> {
+  const oldInstance = ndk;
+  const oldSigner = oldInstance?.signer ?? null;
+
+  // Disconnect all relays on old instance
+  if (oldInstance?.pool?.relays) {
+    for (const relay of oldInstance.pool.relays.values()) {
+      try { relay.disconnect(); } catch { /* ignore */ }
+    }
+  }
+
+  // Create fresh instance
+  ndk = new NDK({
+    explicitRelayUrls: getStoredRelayUrls(),
+  });
+
+  // Restore signer so user stays logged in
+  if (oldSigner) {
+    ndk.signer = oldSigner;
+  }
+
+  // Connect fresh
+  console.log("[Wrystr] NDK instance reset — connecting fresh relays");
+  await ndk.connect();
+  await waitForConnectedRelay(ndk, 5000);
+  const relays = Array.from(ndk.pool?.relays?.values() ?? []);
+  const connected = relays.filter((r) => r.connected).length;
+  console.log(`[Wrystr] Fresh connection: ${connected}/${relays.length} relays connected`);
 }
 
 export function addRelay(url: string): void {
@@ -79,4 +146,33 @@ export async function connectToRelays(): Promise<void> {
   const instance = getNDK();
   await instance.connect();
   await waitForConnectedRelay(instance);
+}
+
+/**
+ * Ensure at least one relay is connected.
+ * If relays report connected, trust them and return immediately.
+ * Only reconnect if zero relays are connected — never force-disconnect working connections.
+ */
+export async function ensureConnected(): Promise<boolean> {
+  const instance = getNDK();
+  const relays = Array.from(instance.pool?.relays?.values() ?? []);
+  const connectedCount = relays.filter((r) => r.connected).length;
+
+  if (connectedCount > 0) {
+    return true; // Trust relay.connected — don't probe or disconnect
+  }
+
+  console.warn(`[Wrystr] No relays connected (${relays.length} in pool) — attempting reconnect`);
+
+  try {
+    await withTimeout(instance.connect(), 4000, undefined);
+    await waitForConnectedRelay(instance, 3000);
+    const after = Array.from(instance.pool?.relays?.values() ?? []);
+    const nowConnected = after.some((r) => r.connected);
+    console.log(`[Wrystr] Reconnect ${nowConnected ? "succeeded" : "failed"}`);
+    return nowConnected;
+  } catch {
+    console.error("[Wrystr] Reconnect failed");
+    return false;
+  }
 }

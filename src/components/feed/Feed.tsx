@@ -3,7 +3,8 @@ import { useFeedStore } from "../../stores/feed";
 import { useUserStore } from "../../stores/user";
 import { useMuteStore } from "../../stores/mute";
 import { useUIStore } from "../../stores/ui";
-import { fetchFollowFeed, getNDK } from "../../lib/nostr";
+import { fetchFollowFeed, getNDK, ensureConnected } from "../../lib/nostr";
+import { diagWrapFetch, logDiag } from "../../lib/feedDiagnostics";
 import { detectScript, getEventLanguageTag, FILTER_SCRIPTS } from "../../lib/language";
 import { NoteCard } from "./NoteCard";
 import { ArticleCard } from "../article/ArticleCard";
@@ -38,7 +39,8 @@ export function Feed() {
   const loadFollowFeed = async () => {
     setFollowLoading(true);
     try {
-      const events = await fetchFollowFeed(follows);
+      await ensureConnected();
+      const events = await diagWrapFetch("follow_fetch", () => fetchFollowFeed(follows));
       setFollowNotes(events);
     } finally {
       setFollowLoading(false);
@@ -140,7 +142,10 @@ export function Feed() {
             </span>
           )}
           <button
-            onClick={isTrending ? () => loadTrendingFeed(true) : isFollowing ? loadFollowFeed : loadFeed}
+            onClick={() => {
+              logDiag({ ts: new Date().toISOString(), action: "refresh_click", details: `tab=${tab}` });
+              (isTrending ? () => loadTrendingFeed(true) : isFollowing ? loadFollowFeed : loadFeed)();
+            }}
             disabled={isLoading}
             className="text-text-muted hover:text-text text-[11px] px-2 py-1 border border-border hover:border-text-dim transition-colors disabled:opacity-40"
           >

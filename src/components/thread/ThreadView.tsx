@@ -3,7 +3,7 @@ import { NDKEvent } from "@nostr-dev-kit/ndk";
 import { useUIStore } from "../../stores/ui";
 import { useUserStore } from "../../stores/user";
 import { useMuteStore } from "../../stores/mute";
-import { fetchNoteById, fetchThreadEvents, fetchAncestors, publishReply, getNDK } from "../../lib/nostr";
+import { fetchNoteById, fetchThreadEvents, fetchAncestors, publishReply, getNDK, ensureConnected } from "../../lib/nostr";
 import { buildThreadTree, getRootEventId } from "../../lib/threadTree";
 import type { ThreadNode } from "../../lib/threadTree";
 import { AncestorChain } from "./AncestorChain";
@@ -22,6 +22,7 @@ export function ThreadView() {
   const [ancestors, setAncestors] = useState<NDKEvent[]>([]);
   const [tree, setTree] = useState<ThreadNode | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showRootReply, setShowRootReply] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [replying, setReplying] = useState(false);
@@ -30,17 +31,26 @@ export function ThreadView() {
   const replyRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const [retryCount, setRetryCount] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
 
     async function loadThread() {
       setLoading(true);
+      setLoadError(null);
       setTree(null);
       setAncestors([]);
       setRootEvent(null);
       setShowRootReply(false);
 
       try {
+        // Ensure we have relay connectivity before fetching
+        const connected = await ensureConnected();
+        if (!connected && !cancelled) {
+          setLoadError("No relay connections available. Check your network.");
+        }
+
         const rootId = getRootEventId(focusedEvent);
         let root: NDKEvent;
 
@@ -54,6 +64,7 @@ export function ThreadView() {
             if (!cancelled) setAncestors(anc.filter((a) => a.id !== root.id));
           } else {
             root = focusedEvent;
+            if (!cancelled) setLoadError("Could not fetch the root note — relay may be slow.");
           }
         }
 
@@ -66,8 +77,14 @@ export function ThreadView() {
         const allEvents = [root, ...events.filter((e) => e.id !== root.id)];
         const built = buildThreadTree(root.id, allEvents);
         setTree(built);
+
+        // Warn if we got zero replies (possible timeout)
+        if (events.length === 0 && !loadError) {
+          console.warn("[Wrystr] Thread fetch returned 0 replies — possible timeout or empty thread");
+        }
       } catch (err) {
         console.error("Failed to load thread:", err);
+        if (!cancelled) setLoadError(`Failed to load: ${err}`);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -75,7 +92,7 @@ export function ThreadView() {
 
     loadThread();
     return () => { cancelled = true; };
-  }, [focusedEvent.id]);
+  }, [focusedEvent.id, retryCount]);
 
   // Scroll to focused note after tree renders (if not root)
   useEffect(() => {
@@ -133,6 +150,19 @@ export function ThreadView() {
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        {/* Error banner */}
+        {loadError && !loading && (
+          <div className="px-4 py-2 bg-danger/10 border-b border-danger/20 flex items-center justify-between">
+            <span className="text-danger text-[11px]">{loadError}</span>
+            <button
+              onClick={() => setRetryCount((c) => c + 1)}
+              className="text-[11px] text-accent hover:text-accent-hover transition-colors px-2 py-0.5 border border-accent/30 hover:border-accent"
+            >
+              retry
+            </button>
+          </div>
+        )}
+
         {/* Loading shimmer */}
         {loading && (
           <div className="px-4 py-6 space-y-4">
@@ -234,8 +264,14 @@ export function ThreadView() {
         )}
 
         {!loading && !tree && (
-          <div className="px-4 py-6 text-text-dim text-[12px] text-center">
-            Could not load thread.
+          <div className="px-4 py-6 text-center space-y-2">
+            <p className="text-text-dim text-[12px]">Could not load thread.</p>
+            <button
+              onClick={() => setRetryCount((c) => c + 1)}
+              className="text-[11px] text-accent hover:text-accent-hover transition-colors px-3 py-1 border border-accent/30 hover:border-accent"
+            >
+              retry
+            </button>
           </div>
         )}
       </div>

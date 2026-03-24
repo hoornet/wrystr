@@ -52,7 +52,13 @@ export function NoteCard({ event, focused, onReplyInThread }: NoteCardProps) {
     <article
       ref={cardRef}
       data-note-id={event.id}
-      className={`border-b border-border px-4 py-3 hover:bg-bg-hover transition-colors duration-100 group/card${focused ? " ring-1 ring-inset ring-accent/30" : ""}`}
+      className={`border-b border-border px-4 py-3 hover:bg-bg-hover transition-colors duration-100 cursor-pointer group/card${focused ? " ring-1 ring-inset ring-accent/30" : ""}`}
+      onClick={(e) => {
+        // Don't navigate if clicking on interactive elements
+        const target = e.target as HTMLElement;
+        if (target.closest("button, a, input, textarea, [data-no-navigate]")) return;
+        openThread(event, currentView as "feed" | "profile");
+      }}
     >
       <div className="flex gap-3">
         {/* Avatar */}
@@ -152,10 +158,7 @@ export function NoteCard({ event, focused, onReplyInThread }: NoteCardProps) {
             </div>
           )}
 
-          <div
-            className="cursor-pointer"
-            onClick={() => openThread(event, currentView as "feed" | "profile")}
-          >
+          <div>
             <NoteContent content={event.content} inline />
           </div>
           <NoteContent content={event.content} mediaOnly />

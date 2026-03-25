@@ -109,7 +109,9 @@ async function pollOnce(pubkey: string) {
 
 export function startNotificationPoller(pubkey: string) {
   stopNotificationPoller();
-  // Run first poll after a short delay (let relays connect)
+  // Fetch notification counts immediately (before full poll)
+  useNotificationsStore.getState().fetchNotifications(pubkey).catch(() => {});
+  // Run first full poll after a short delay (let relays connect)
   setTimeout(() => pollOnce(pubkey).catch(() => {}), 5000);
   intervalId = setInterval(() => pollOnce(pubkey).catch(() => {}), POLL_INTERVAL);
 }

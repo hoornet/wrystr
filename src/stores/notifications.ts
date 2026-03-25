@@ -74,11 +74,18 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       // Filter out own events — your replies shouldn't be notifications
       const others = events.filter((e) => e.pubkey !== pubkey);
       const sorted = others.sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)).slice(0, MAX_NOTIFICATIONS);
-      const { readIds } = get();
+
+      // Don't overwrite existing notifications with empty results (relay timeout/disconnect)
+      const { readIds, notifications: existing } = get();
+      if (sorted.length === 0 && existing.length > 0) {
+        // Keep existing notifications — relay probably timed out
+        return;
+      }
+
       const unreadCount = sorted.filter((e) => !readIds.has(e.id!)).length;
       set({ notifications: sorted, unreadCount });
     } catch {
-      // Non-critical
+      // Non-critical — keep existing notifications on error
     } finally {
       set({ loading: false });
     }

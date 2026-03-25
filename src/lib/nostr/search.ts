@@ -1,25 +1,74 @@
-import { NDKEvent, NDKFilter, NDKKind, NDKUser } from "@nostr-dev-kit/ndk";
+import NDK, { NDKEvent, NDKFilter, NDKKind, NDKSubscriptionCacheUsage, NDKUser } from "@nostr-dev-kit/ndk";
 import { type ParsedSearch, matchesHasFilter } from "../search";
-import { getNDK, fetchWithTimeout, FEED_TIMEOUT } from "./core";
+import { getNDK, fetchWithTimeout, withTimeout, FEED_TIMEOUT } from "./core";
+
+// Dedicated NIP-50 search relays — queried for full-text search regardless of user's relay list
+const SEARCH_RELAYS = [
+  "wss://relay.nostr.band",
+  "wss://search.nos.today",
+];
+
+// Persistent NDK instance dedicated to search relays — stays connected
+let searchNDK: NDK | null = null;
+let searchNDKConnecting: Promise<void> | null = null;
+
+async function getSearchNDK(): Promise<NDK> {
+  if (searchNDK) return searchNDK;
+  searchNDK = new NDK({ explicitRelayUrls: SEARCH_RELAYS });
+  searchNDKConnecting = searchNDK.connect().then(() => {
+    console.log("[Wrystr] Search relays connected");
+    searchNDKConnecting = null;
+  });
+  await withTimeout(searchNDKConnecting, 5000, undefined);
+  return searchNDK;
+}
+
+const EMPTY_SET = new Set<NDKEvent>();
+
+/** Fetch events from the dedicated search relays with timeout. */
+async function searchFetch(filter: NDKFilter, timeoutMs = FEED_TIMEOUT): Promise<Set<NDKEvent>> {
+  const ndk = await getSearchNDK();
+  const promise = ndk.fetchEvents(filter, {
+    cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY,
+    groupable: false,
+  });
+  return withTimeout(promise, timeoutMs, EMPTY_SET);
+}
 
 export async function searchNotes(query: string, limit = 50): Promise<NDKEvent[]> {
   const instance = getNDK();
   const isHashtag = query.startsWith("#");
-  const filter: NDKFilter & { search?: string } = isHashtag
-    ? { kinds: [NDKKind.Text], "#t": [query.slice(1).toLowerCase()], limit }
-    : { kinds: [NDKKind.Text], search: query, limit };
-  const events = await fetchWithTimeout(instance, filter, FEED_TIMEOUT);
-  return Array.from(events).sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
+
+  if (isHashtag) {
+    const filter: NDKFilter = { kinds: [NDKKind.Text], "#t": [query.slice(1).toLowerCase()], limit };
+    const events = await fetchWithTimeout(instance, filter, FEED_TIMEOUT);
+    return Array.from(events).sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
+  }
+
+  // Hybrid: NIP-50 full-text on search relays + hashtag on user relays
+  const searchFilter: NDKFilter & { search?: string } = { kinds: [NDKKind.Text], search: query, limit };
+  const tagFilter: NDKFilter = { kinds: [NDKKind.Text], "#t": [query.toLowerCase()], limit };
+  const [nip50Events, tagEvents] = await Promise.all([
+    searchFetch(searchFilter),
+    fetchWithTimeout(instance, tagFilter, FEED_TIMEOUT),
+  ]);
+
+  // Merge and deduplicate
+  const seen = new Set<string>();
+  const merged: NDKEvent[] = [];
+  for (const e of [...nip50Events, ...tagEvents]) {
+    if (e.id && !seen.has(e.id)) { seen.add(e.id); merged.push(e); }
+  }
+  return merged.sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
 }
 
 export async function searchUsers(query: string, limit = 20): Promise<NDKEvent[]> {
-  const instance = getNDK();
   const filter: NDKFilter & { search?: string } = {
     kinds: [NDKKind.Metadata],
     search: query,
     limit,
   };
-  const events = await fetchWithTimeout(instance, filter, FEED_TIMEOUT);
+  const events = await searchFetch(filter);
   return Array.from(events);
 }
 
@@ -70,18 +119,12 @@ export async function advancedSearch(parsed: ParsedSearch, limit = 50): Promise<
     };
   }
 
-  // Resolve any NIP-05 or name-based author identifiers
+  // Resolve author identifiers (npub or NIP-05 only — display name resolution not yet supported)
   const resolvedAuthors = [...parsed.authors];
   for (const nip05 of parsed.unresolvedNip05) {
-    const resolved = await resolveNip05(nip05.includes("@") || nip05.includes(".") ? nip05 : `_@${nip05}`);
-    if (resolved) {
-      resolvedAuthors.push(resolved);
-    } else {
-      const nameResults = await searchUsers(nip05, 1);
-      if (nameResults.length > 0) {
-        resolvedAuthors.push(nameResults[0].pubkey);
-      }
-    }
+    const identifier = nip05.includes("@") || nip05.includes(".") ? nip05 : `_@${nip05}`;
+    const resolved = await resolveNip05(identifier);
+    if (resolved) resolvedAuthors.push(resolved);
   }
 
   // Determine which kinds to search
@@ -117,17 +160,68 @@ export async function advancedSearch(parsed: ParsedSearch, limit = 50): Promise<
 
   const noteFilter = noteKinds.length > 0 ? buildFilter(noteKinds) : null;
   const articleFilter = articleKinds.length > 0 ? buildFilter(articleKinds) : null;
-  const shouldSearchUsers = (!hasKindFilter || parsed.kinds.includes(0)) && hasSearch && !hasHashtags;
+  const shouldSearchUsers = (!hasKindFilter || parsed.kinds.includes(0)) && (hasSearch || hasHashtags);
 
-  const [noteEvents, articleEvents, userEvents] = await Promise.all([
-    noteFilter ? fetchWithTimeout(instance, noteFilter, FEED_TIMEOUT) : Promise.resolve(new Set<NDKEvent>()),
-    articleFilter ? fetchWithTimeout(instance, articleFilter, FEED_TIMEOUT) : Promise.resolve(new Set<NDKEvent>()),
-    shouldSearchUsers ? fetchWithTimeout(instance, { kinds: [NDKKind.Metadata], search: searchText, limit: 20 } as NDKFilter & { search: string }, FEED_TIMEOUT) : Promise.resolve(new Set<NDKEvent>()),
-  ]);
+  const usesNip50 = hasSearch && !hasHashtags;
 
-  let notes = Array.from(noteEvents);
-  let articles = Array.from(articleEvents);
+  // Build parallel fetch promises
+  const fetches: Promise<Set<NDKEvent>>[] = [];
+
+  // Notes: NIP-50 on search relays, or hashtag on user relays
+  fetches.push(noteFilter ? (usesNip50 ? searchFetch(noteFilter) : fetchWithTimeout(instance, noteFilter, FEED_TIMEOUT)) : Promise.resolve(new Set<NDKEvent>()));
+  // Articles: same logic
+  fetches.push(articleFilter ? (usesNip50 ? searchFetch(articleFilter) : fetchWithTimeout(instance, articleFilter, FEED_TIMEOUT)) : Promise.resolve(new Set<NDKEvent>()));
+  // Users: NIP-50 on search relays
+  fetches.push(shouldSearchUsers
+    ? searchFetch({ kinds: [NDKKind.Metadata], search: hasSearch ? searchText : parsed.hashtags.join(" "), limit: 20 } as NDKFilter & { search: string })
+    : Promise.resolve(new Set<NDKEvent>()));
+
+  // Hybrid: if text search, also do hashtag lookup on user relays and merge
+  // Carry over author/mention/time constraints so modifiers like by:jack still filter
+  const hybridTerms = hasSearch && !hasHashtags ? searchText.toLowerCase().split(/\s+/).filter(Boolean) : [];
+  const buildHybridFilter = (kinds: number[]): NDKFilter => {
+    const f: NDKFilter = { kinds: kinds.map((k) => k as NDKKind), "#t": hybridTerms, limit };
+    if (resolvedAuthors.length > 0) f.authors = resolvedAuthors;
+    if (parsed.mentions.length > 0) f["#p"] = parsed.mentions;
+    if (parsed.since) f.since = parsed.since;
+    if (parsed.until) f.until = parsed.until;
+    return f;
+  };
+  if (hybridTerms.length > 0 && noteKinds.length > 0) {
+    fetches.push(fetchWithTimeout(instance, buildHybridFilter(noteKinds), FEED_TIMEOUT));
+  } else {
+    fetches.push(Promise.resolve(new Set<NDKEvent>()));
+  }
+  if (hybridTerms.length > 0 && articleKinds.length > 0) {
+    fetches.push(fetchWithTimeout(instance, buildHybridFilter(articleKinds), FEED_TIMEOUT));
+  } else {
+    fetches.push(Promise.resolve(new Set<NDKEvent>()));
+  }
+
+  const [noteEvents, articleEvents, userEvents, hybridNoteEvents, hybridArticleEvents] = await Promise.all(fetches);
+
+  // Merge and deduplicate results from multiple sources
+  const dedup = (...sources: Set<NDKEvent>[]): NDKEvent[] => {
+    const seen = new Set<string>();
+    const result: NDKEvent[] = [];
+    for (const source of sources) {
+      for (const e of source) {
+        if (e.id && !seen.has(e.id)) { seen.add(e.id); result.push(e); }
+      }
+    }
+    return result;
+  };
+
+  let notes = dedup(noteEvents, hybridNoteEvents);
+  let articles = dedup(articleEvents, hybridArticleEvents);
   const users = Array.from(userEvents);
+
+  // Client-side author filter — search relays may not intersect authors with search properly
+  if (resolvedAuthors.length > 0) {
+    const authorSet = new Set(resolvedAuthors);
+    notes = notes.filter((e) => authorSet.has(e.pubkey));
+    articles = articles.filter((e) => authorSet.has(e.pubkey));
+  }
 
   // Client-side filters: has:image, has:video, has:code, etc.
   if (parsed.hasFilters.length > 0) {

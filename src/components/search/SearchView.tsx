@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { NDKEvent } from "@nostr-dev-kit/ndk";
-import { getStoredRelayUrls, fetchFollowSuggestions, fetchProfile, advancedSearch, fetchTrendingHashtags } from "../../lib/nostr";
+import { fetchFollowSuggestions, fetchProfile, advancedSearch, fetchTrendingHashtags } from "../../lib/nostr";
 import { parseSearchQuery, describeSearch } from "../../lib/search";
-import { getNip50Relays } from "../../lib/nostr/relayInfo";
 import { useUserStore } from "../../stores/user";
 import { useMuteStore } from "../../stores/mute";
 import { useDismissedSuggestionsStore } from "../../stores/dismissedSuggestions";
@@ -132,7 +131,6 @@ export function SearchView() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [activeTab, setActiveTab] = useState<"notes" | "people" | "articles">("notes");
-  const [nip50Relays, setNip50Relays] = useState<string[] | null>(null); // null = not checked yet
   const inputRef = useRef<HTMLInputElement>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
@@ -142,14 +140,6 @@ export function SearchView() {
   const [trending, setTrending] = useState<{ tag: string; count: number }[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(false);
   const [trendingLoaded, setTrendingLoaded] = useState(false);
-  const isHashtag = query.trim().startsWith("#") && !query.includes(":");
-
-  // Check relay NIP-50 support once on mount (background, non-blocking)
-  useEffect(() => {
-    const urls = getStoredRelayUrls();
-    getNip50Relays(urls).then(setNip50Relays);
-  }, []);
-
   // Load trending hashtags on mount
   useEffect(() => {
     if (trendingLoaded) return;
@@ -215,6 +205,9 @@ export function SearchView() {
     setLoading(true);
     setSearched(false);
     setSearchHint(null);
+    setNoteResults([]);
+    setArticleResults([]);
+    setUserResults([]);
     try {
       const parsed = parseSearchQuery(q);
       const isAdvanced = parsed.authors.length > 0 || parsed.unresolvedNip05.length > 0 ||
@@ -241,18 +234,7 @@ export function SearchView() {
     if (e.key === "Enter") handleSearch();
   };
 
-  // Switch query to hashtag format and re-run
-  const tryAsHashtag = () => {
-    const raw = query.trim().replace(/^#+/, "");
-    const hashQuery = `#${raw}`;
-    setQuery(hashQuery);
-    handleSearch(hashQuery);
-  };
-
   const totalResults = noteResults.length + userResults.length + articleResults.length;
-  const allRelays = getStoredRelayUrls();
-  const nip50Count = nip50Relays?.length ?? null;
-  const noNip50 = nip50Relays !== null && nip50Relays.length === 0;
 
   return (
     <div className="h-full flex flex-col">
@@ -279,8 +261,8 @@ export function SearchView() {
         </div>
       </header>
 
-      {/* Tabs — shown once a search has been run (except for hashtag, which is notes-only) */}
-      {searched && !isHashtag && (
+      {/* Tabs — shown once a search has been run */}
+      {searched && (
         <div className="border-b border-border flex shrink-0">
           {(["notes", "articles", "people"] as const).map((tab) => {
             const count = tab === "notes" ? noteResults.length : tab === "articles" ? articleResults.length : userResults.length;
@@ -311,6 +293,16 @@ export function SearchView() {
       {/* Results area */}
       <div className="flex-1 overflow-y-auto">
 
+        {/* Loading indicator */}
+        {loading && (
+          <div className="px-4 py-12 flex flex-col items-center gap-3">
+            <span className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            <p className="text-text-dim text-[12px]">
+              Searching relays for <span className="text-text font-medium">{query}</span>
+            </p>
+          </div>
+        )}
+
         {/* Idle / pre-search hint */}
         {!searched && !loading && (
           <div className="px-4 py-6 space-y-4">
@@ -318,23 +310,19 @@ export function SearchView() {
               <p className="text-text-dim text-[12px]">
                 Type a keyword, <span className="text-accent">#hashtag</span>, or use search modifiers.
               </p>
-              {nip50Relays !== null && (
-                <p className="text-text-dim text-[11px] opacity-70">
-                  {nip50Count === 0
-                    ? "None of your relays support full-text search — #hashtag search always works."
-                    : `${nip50Count} of ${allRelays.length} relay${allRelays.length !== 1 ? "s" : ""} support full-text search.`}
-                </p>
-              )}
+              <p className="text-text-dim text-[11px] opacity-70">
+                Full-text search uses dedicated search relays. Hashtag and keyword results are combined.
+              </p>
             </div>
 
             {/* Search syntax help */}
             <div className="max-w-md mx-auto">
               <h3 className="text-text-dim text-[10px] uppercase tracking-widest mb-2">Search modifiers</h3>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
-                <span className="text-accent font-mono">by:name</span>
-                <span className="text-text-dim">notes from author</span>
                 <span className="text-accent font-mono">by:user@domain</span>
-                <span className="text-text-dim">NIP-05 author lookup</span>
+                <span className="text-text-dim">notes from NIP-05 author</span>
+                <span className="text-accent font-mono">by:npub1...</span>
+                <span className="text-text-dim">notes from pubkey</span>
                 <span className="text-accent font-mono">#bitcoin</span>
                 <span className="text-text-dim">hashtag search</span>
                 <span className="text-accent font-mono">has:image</span>
@@ -434,42 +422,15 @@ export function SearchView() {
           </div>
         )}
 
-        {/* Zero results for full-text search */}
-        {searched && totalResults === 0 && !isHashtag && (
+        {/* Zero results */}
+        {searched && totalResults === 0 && (
           <div className="px-4 py-8 text-center space-y-3">
             <p className="text-text-dim text-[12px]">
               No results for <span className="text-text font-medium">{query}</span>.
             </p>
-
-            {/* Relay NIP-50 status */}
-            {nip50Relays !== null && (
-              <p className="text-text-dim text-[11px]">
-                {noNip50
-                  ? "None of your relays support full-text search."
-                  : `${nip50Count} of ${allRelays.length} relay${allRelays.length !== 1 ? "s" : ""} support full-text search.`}
-              </p>
-            )}
-
-            {/* Hashtag suggestion */}
-            {!query.startsWith("#") && (
-              <div>
-                <p className="text-text-dim text-[11px] mb-2">Try a hashtag search instead:</p>
-                <button
-                  onClick={tryAsHashtag}
-                  className="px-3 py-1.5 text-[12px] border border-accent/50 text-accent hover:bg-accent hover:text-white transition-colors"
-                >
-                  Search #{query.replace(/^#+/, "")}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Zero results for hashtag search */}
-        {searched && totalResults === 0 && isHashtag && (
-          <div className="px-4 py-8 text-center">
-            <p className="text-text-dim text-[12px]">No notes found for <span className="text-text">{query}</span>.</p>
-            <p className="text-text-dim text-[11px] mt-1 opacity-70">Try a different hashtag or check your relay connections.</p>
+            <p className="text-text-dim text-[11px] opacity-70">
+              Try different keywords, a #hashtag, or check your relay connections.
+            </p>
           </div>
         )}
 
@@ -477,9 +438,6 @@ export function SearchView() {
         {searched && activeTab === "people" && userResults.length === 0 && totalResults > 0 && (
           <div className="px-4 py-6 text-center">
             <p className="text-text-dim text-[12px]">No people found for <span className="text-text">{query}</span>.</p>
-            {noNip50 && (
-              <p className="text-text-dim text-[11px] mt-1 opacity-70">People search requires NIP-50 relay support.</p>
-            )}
           </div>
         )}
 
@@ -494,7 +452,7 @@ export function SearchView() {
         ))}
 
         {/* Notes results */}
-        {(activeTab === "notes" || isHashtag) && noteResults.map((event) => (
+        {activeTab === "notes" && noteResults.map((event) => (
           <NoteCard key={event.id} event={event} />
         ))}
       </div>

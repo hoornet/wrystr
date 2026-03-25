@@ -69,21 +69,19 @@ jobs:
 
             > **Windows note:** The installer is not yet code-signed. Windows SmartScreen will show an "Unknown publisher" warning — click "More info → Run anyway" to install.
 
-            ### New in v0.9.4 — Search, Follows, Editor & Polish
-            Better search, new social features, writing improvements.
-            - **Search overhaul** — dedicated NIP-50 search relays (relay.nostr.band, search.nos.today) for full-text search; hybrid results combining NIP-50 + hashtag lookups; all 3 tabs (notes/articles/people) always visible; loading indicators with result clearing
-            - **Follows view** — new sidebar entry showing followers and following lists with tabs; new follower count badge in sidebar
-            - **Article editor improvements** — inline image preview strip while writing; readable toolbar labels (Link, Image, Quote, Code, List); drag-and-drop image support; better placeholder text
-            - **Auto-expanding textareas** — all compose boxes, reply boxes, and thread replies grow as you type (2-8 or 3-12 lines depending on context)
-            - **Article comment box** — upgraded from single-line input to proper multi-line textarea with auto-resize
-            - **Profile layout fix** — avatar no longer squashes when banner is present; banner hides cleanly on load error
-            - **Thread stability fix** — fixed React hooks violation that caused thread content to disappear
+            ### New in v0.9.5 — Large Font Fix
+            Fixed layout overflow when using Large or Extra Large font on Windows.
+            - **Flex-wrap everywhere** — feed header, note card headers, note actions, compose box, settings theme grid, font size presets, media feed tabs, and profile header buttons all wrap gracefully instead of overflowing off-screen at high zoom levels
+            - **Themes grid** — switched from fixed 4-column grid to responsive wrapping layout
+
+            ### Previous: v0.9.4 — Search, Follows, Editor & Polish
+            - Search overhaul (dedicated NIP-50 relays, hybrid results), follows view, article editor improvements (image previews, toolbar labels, drag-drop), auto-expanding textareas, profile layout fix, thread stability fix
 
             ### Previous: v0.9.3 — Themes, Font Size & Settings Polish
             - 7 color themes, font size presets, collapsible muted accounts, removed old connection indicator
 
             ### Previous: v0.9.2 — Relay Status, Toasts & Debug Tools
-            - Relay status badge, toast notifications, per-tab timestamps, debug panel (Ctrl+Shift+D), consolidated relay management, wider scrollbar
+            - Relay status badge, toast notifications, per-tab timestamps, debug panel (Ctrl+Shift+D), consolidated relay management
 
             ### Previous: v0.9.1 — Live Feed & Relay Reliability
             - Live streaming feed, timeouts on all relay fetches, fixed relay death spiral, NDK subscription hygiene, feed diagnostics, background relay recovery

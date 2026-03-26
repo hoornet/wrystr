@@ -56,6 +56,7 @@ export function ThreadView() {
 
         const rootId = getRootEventId(focusedEvent);
         let root: NDKEvent;
+        let fetchedAncestors: NDKEvent[] = [];
 
         if (!rootId || rootId === focusedEvent.id) {
           root = focusedEvent;
@@ -63,8 +64,9 @@ export function ThreadView() {
           const fetched = await fetchNoteById(rootId);
           if (fetched) {
             root = fetched;
-            const anc = await fetchAncestors(focusedEvent);
-            if (!cancelled) setAncestors(anc.filter((a) => a.id !== root.id));
+            fetchedAncestors = await fetchAncestors(focusedEvent);
+            fetchedAncestors = fetchedAncestors.filter((a) => a.id !== root.id);
+            if (!cancelled) setAncestors(fetchedAncestors);
           } else {
             root = focusedEvent;
             if (!cancelled) setLoadError("Could not fetch the root note — relay may be slow.");
@@ -77,7 +79,18 @@ export function ThreadView() {
         const events = await fetchThreadEvents(root.id);
         if (cancelled) return;
 
+        // Build event list: root + thread replies + focused event + ancestors
+        // Always include focused event — relay may not return it in thread fetch
         const allEvents = [root, ...events.filter((e) => e.id !== root.id)];
+        if (focusedEvent.id !== root.id && !allEvents.some((e) => e.id === focusedEvent.id)) {
+          allEvents.push(focusedEvent);
+        }
+        for (const anc of fetchedAncestors) {
+          if (!allEvents.some((e) => e.id === anc.id)) {
+            allEvents.push(anc);
+          }
+        }
+
         const built = buildThreadTree(root.id, allEvents);
         setTree(built);
 

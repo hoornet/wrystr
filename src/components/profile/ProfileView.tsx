@@ -92,15 +92,26 @@ export function ProfileView() {
   const lud16 = profile?.lud16;
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setProfileTab("notes");
     setBannerLoaded(false);
     setBannerError(false);
     setWotExpanded(false);
-    fetchUserNotesNIP65(pubkey).then((events) => {
-      setNotes(events);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    fetchUserNotesNIP65(pubkey).then(async (events) => {
+      if (cancelled) return;
+      if (events.length === 0) {
+        // Relays may not be ready yet — retry once after a short delay
+        await new Promise((r) => setTimeout(r, 3000));
+        if (cancelled) return;
+        events = await fetchUserNotesNIP65(pubkey);
+      }
+      if (!cancelled) {
+        setNotes(events);
+        setLoading(false);
+      }
+    }).catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [pubkey]);
 
   useEffect(() => {

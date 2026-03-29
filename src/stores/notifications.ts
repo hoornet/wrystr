@@ -49,6 +49,24 @@ function migrateLegacyReadIds(): Set<string> {
   return new Set();
 }
 
+/** Dedup kind 3 (follower) events — keep only the newest per pubkey. */
+function dedupFollowers(events: NDKEvent[]): NDKEvent[] {
+  const seenFollowers = new Map<string, NDKEvent>();
+  const result: NDKEvent[] = [];
+  for (const e of events) {
+    if (e.kind === 3) {
+      const existing = seenFollowers.get(e.pubkey);
+      if (!existing || (e.created_at ?? 0) > (existing.created_at ?? 0)) {
+        seenFollowers.set(e.pubkey, e);
+      }
+    } else {
+      result.push(e);
+    }
+  }
+  result.push(...seenFollowers.values());
+  return result;
+}
+
 export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   notifications: [],
   unreadCount: 0,
@@ -83,9 +101,12 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       } catch { /* skip malformed */ }
     }
 
-    const unreadCount = events.filter((e) => !readIds.has(e.id!)).length;
-    debug.log("notif:db loaded", events.length, "notifications,", unreadCount, "unread");
-    set({ notifications: events, readIds, unreadCount, loading: false });
+    // Dedup kind 3 (follower) events by pubkey — keep only newest per person
+    const dedupedEvents = dedupFollowers(events);
+
+    const unreadCount = dedupedEvents.filter((e) => !readIds.has(e.id!)).length;
+    debug.log("notif:db loaded", dedupedEvents.length, "notifications,", unreadCount, "unread");
+    set({ notifications: dedupedEvents, readIds, unreadCount, loading: false });
 
     // Clear legacy localStorage read IDs now that DB is the source of truth
     localStorage.removeItem(LEGACY_READ_KEY);
@@ -130,8 +151,8 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
         debug.log("notif:db saved", newEvents.length, "new mentions");
       }
 
-      // Combine, sort, cap
-      const merged = [...existing, ...newEvents]
+      // Combine, dedup followers, sort, cap
+      const merged = dedupFollowers([...existing, ...newEvents])
         .sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
         .slice(0, MAX_NOTIFICATIONS);
 

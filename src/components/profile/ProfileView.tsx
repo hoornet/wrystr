@@ -4,6 +4,7 @@ import { useUIStore } from "../../stores/ui";
 import { useUserStore } from "../../stores/user";
 import { useMuteStore } from "../../stores/mute";
 import { useProfile } from "../../hooks/useProfile";
+import { useReputation } from "../../hooks/useReputation";
 import { fetchUserNotesNIP65, fetchAuthorArticles, getNDK } from "../../lib/nostr";
 import { shortenPubkey } from "../../lib/utils";
 import { NoteCard } from "../feed/NoteCard";
@@ -12,6 +13,34 @@ import { ZapModal } from "../zap/ZapModal";
 import { ImageLightbox } from "../shared/ImageLightbox";
 import { EditProfileForm } from "./EditProfileForm";
 import { ProfileMediaGallery } from "./ProfileMediaGallery";
+
+function TopFollowerAvatar({ pubkey }: { pubkey: string }) {
+  const profile = useProfile(pubkey);
+  const { openProfile } = useUIStore();
+  const name = profile?.displayName || profile?.name || pubkey.slice(0, 8) + "…";
+
+  return (
+    <button
+      onClick={() => openProfile(pubkey)}
+      className="flex items-center gap-1.5 shrink-0 hover:opacity-80 transition-opacity"
+      title={name}
+    >
+      {profile?.picture ? (
+        <img
+          src={profile.picture}
+          alt=""
+          className="w-5 h-5 rounded-sm object-cover bg-bg-raised"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+      ) : (
+        <div className="w-5 h-5 rounded-sm bg-bg-raised border border-border flex items-center justify-center text-[8px] text-text-dim">
+          {name.charAt(0).toUpperCase()}
+        </div>
+      )}
+      <span className="text-[10px] text-text-dim">{name}</span>
+    </button>
+  );
+}
 
 export function ProfileView() {
   const { selectedPubkey, goBack, openDM } = useUIStore();
@@ -39,6 +68,7 @@ export function ProfileView() {
   const isFollowing = follows.includes(pubkey);
   const { mutedPubkeys, mute, unmute } = useMuteStore();
   const isMuted = mutedPubkeys.includes(pubkey);
+  const reputation = useReputation(pubkey);
 
   const handleFollowToggle = async () => {
     setFollowPending(true);
@@ -207,6 +237,28 @@ export function ProfileView() {
                 <div className="text-text-dim text-[10px] font-mono mt-2">{shortenPubkey(pubkey)}</div>
               </div>
             </div>
+
+            {/* Web of Trust — powered by Vertex */}
+            {reputation.data && reputation.data.topFollowers.length > 0 && (
+              <div className="px-4 pb-3">
+                <div className="text-[10px] text-text-dim mb-1.5">Followed by people you trust</div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                  {reputation.data.topFollowers.slice(0, 5).map((f) => (
+                    <TopFollowerAvatar key={f.pubkey} pubkey={f.pubkey} />
+                  ))}
+                  {reputation.data.topFollowers.length > 5 && (
+                    <span className="text-[10px] text-text-dim">
+                      +{reputation.data.topFollowers.length - 5} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+            {reputation.loading && (
+              <div className="px-4 pb-3">
+                <div className="h-3 w-32 bg-bg-raised animate-pulse rounded-sm" />
+              </div>
+            )}
           </div>
         )}
 

@@ -11,7 +11,8 @@
     {
       "identifier": "http:default",
       "allow": [
-        { "url": "https://nostr.build/**" }
+        { "url": "https://nostr.build/**" },
+        { "url": "https://relay.vertexlab.io/**" }
       ]
     },
     "dialog:default",

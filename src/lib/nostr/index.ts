@@ -12,3 +12,5 @@ export type { AdvancedSearchResults } from "./search";
 export { fetchUserRelayList, publishRelayList, fetchRelayRecommendations } from "./relays";
 export type { UserRelayList } from "./relays";
 export { fetchTrendingCandidates, fetchTrendingHashtags } from "./trending";
+export { verifyReputation } from "./vertex";
+export type { ReputationResult, ReputationEntry } from "./vertex";

@@ -100,9 +100,17 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     set({ loading: true });
     try {
       const since = Math.floor(Date.now() / 1000) - 7 * 86400;
-      const events = await fetchMentions(pubkey, since, MAX_NOTIFICATIONS);
-      const others = events.filter((e) => e.pubkey !== pubkey);
+      let events = await fetchMentions(pubkey, since, MAX_NOTIFICATIONS);
+      let others = events.filter((e) => e.pubkey !== pubkey);
       debug.log("notif:fetch", events.length, "raw →", others.length, "others");
+
+      // Retry once if empty — relays may need more time for #p tag queries
+      if (others.length === 0) {
+        await new Promise((r) => setTimeout(r, 3000));
+        events = await fetchMentions(pubkey, since, MAX_NOTIFICATIONS);
+        others = events.filter((e) => e.pubkey !== pubkey);
+        debug.log("notif:fetch retry →", others.length, "others");
+      }
 
       // Don't overwrite existing notifications with empty results (relay timeout/disconnect)
       const { readIds, notifications: existing } = get();

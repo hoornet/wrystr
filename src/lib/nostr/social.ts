@@ -74,10 +74,11 @@ export async function fetchFollowSuggestions(myFollows: string[]): Promise<{ pub
 
 export async function fetchMentions(pubkey: string, since: number, limit = 50): Promise<NDKEvent[]> {
   const instance = getNDK();
+  // Use a longer timeout for #p queries — some relays are slow to index tag lookups
   const events = await fetchWithTimeout(
     instance,
     { kinds: [NDKKind.Text], "#p": [pubkey], since, limit },
-    FEED_TIMEOUT,
+    12000,
   );
   return Array.from(events).sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
 }

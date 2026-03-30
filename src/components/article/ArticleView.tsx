@@ -79,7 +79,7 @@ export function ArticleView() {
   const [showComment, setShowComment] = useState(false);
   const [commentText, setCommentText] = useState("");
   const autoResize = useAutoResize(3, 10);
-  const { isBookmarked, addBookmark, removeBookmark } = useBookmarkStore();
+  const { isBookmarked, addBookmark, removeBookmark, isArticleBookmarked, addArticleBookmark, removeArticleBookmark } = useBookmarkStore();
 
   const naddr = pendingArticleNaddr ?? "";
 
@@ -127,7 +127,9 @@ export function ArticleView() {
   const bodyHtml = event?.content ? renderMarkdown(event.content) : "";
   const wordCount = event?.content?.trim().split(/\s+/).length ?? 0;
   const readingTime = Math.max(1, Math.ceil(wordCount / 230));
-  const bookmarked = event?.id ? isBookmarked(event.id) : false;
+  const dTag = event?.tags?.find((t) => t[0] === "d")?.[1];
+  const articleAddr = event && dTag ? `30023:${event.pubkey}:${dTag}` : null;
+  const bookmarked = articleAddr ? isArticleBookmarked(articleAddr) : (event?.id ? isBookmarked(event.id) : false);
 
   // Reading progress bar + TOC
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -198,9 +200,14 @@ export function ArticleView() {
   };
 
   const handleBookmark = () => {
-    if (!event?.id) return;
-    if (bookmarked) removeBookmark(event.id);
-    else addBookmark(event.id);
+    if (!event) return;
+    if (articleAddr) {
+      if (bookmarked) removeArticleBookmark(articleAddr);
+      else addArticleBookmark(articleAddr);
+    } else if (event.id) {
+      if (bookmarked) removeBookmark(event.id);
+      else addBookmark(event.id);
+    }
   };
 
   const handleRepost = async () => {

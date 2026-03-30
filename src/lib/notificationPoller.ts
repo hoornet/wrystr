@@ -89,6 +89,10 @@ async function pollOnce(pubkey: string) {
     const newFollowers = followers.filter((e) => e.pubkey !== pubkey && !existingFollowerPubkeys.has(e.pubkey));
     if (newFollowers.length > 0) {
       dbSaveNotifications(newFollowers.map((e) => JSON.stringify(e.rawEvent())), pubkey, "follower");
+      // Add to in-memory store so next poll cycle's pubkey dedup catches them
+      const store = useNotificationsStore.getState();
+      const updated = [...store.notifications, ...newFollowers];
+      useNotificationsStore.setState({ notifications: updated });
       for (const e of newFollowers) {
         const name = await getProfileName(e.pubkey);
         notifyFollower(name).catch(() => {});

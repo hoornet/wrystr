@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { NDKEvent } from "@nostr-dev-kit/ndk";
 import { useUserStore } from "../../stores/user";
 import { useUIStore } from "../../stores/ui";
-import { fetchZapsReceived, fetchZapsSent } from "../../lib/nostr";
+import { fetchZapsReceived, fetchZapsSent, fetchNoteById } from "../../lib/nostr";
 import { useProfile } from "../../hooks/useProfile";
 import { timeAgo, shortenPubkey } from "../../lib/utils";
 
@@ -39,21 +39,53 @@ function ZapRow({
   pubkey,
   amount,
   comment,
+  noteId,
   createdAt,
   direction,
 }: {
   pubkey: string | null;
   amount: number | null;
   comment: string;
+  noteId: string | null;
   createdAt: number;
   direction: "received" | "sent";
 }) {
-  const { openProfile } = useUIStore();
+  const { openProfile, openThread } = useUIStore();
   const profile = useProfile(pubkey ?? "");
   const name = pubkey
     ? profile?.displayName || profile?.name || shortenPubkey(pubkey)
     : "anonymous";
   const avatar = profile?.picture;
+  const [notePreview, setNotePreview] = useState<string | null>(null);
+  const [noteEvent, setNoteEvent] = useState<NDKEvent | null>(null);
+  const [loadingNote, setLoadingNote] = useState(false);
+
+  useEffect(() => {
+    if (!noteId) return;
+    fetchNoteById(noteId).then((event) => {
+      if (event) {
+        setNoteEvent(event);
+        setNotePreview(event.content?.slice(0, 120) || null);
+      }
+    }).catch(() => {});
+  }, [noteId]);
+
+  const handleNoteClick = useCallback(async () => {
+    if (noteEvent) {
+      openThread(noteEvent);
+      return;
+    }
+    if (!noteId || loadingNote) return;
+    setLoadingNote(true);
+    try {
+      const event = await fetchNoteById(noteId);
+      if (event) {
+        setNoteEvent(event);
+        openThread(event);
+      }
+    } catch { /* ignore */ }
+    finally { setLoadingNote(false); }
+  }, [noteId, noteEvent, loadingNote, openThread]);
 
   return (
     <div className="flex items-start gap-3 px-4 py-3 border-b border-border hover:bg-bg-hover transition-colors">
@@ -91,6 +123,22 @@ function ZapRow({
         </div>
         {comment && (
           <p className="text-text-muted text-[12px] leading-snug">{comment}</p>
+        )}
+        {noteId && (
+          <button
+            onClick={handleNoteClick}
+            className="mt-1.5 w-full text-left bg-bg-raised border border-border px-3 py-2 rounded-sm hover:border-accent/40 transition-colors cursor-pointer group"
+          >
+            {notePreview ? (
+              <p className="text-text-muted text-[11px] leading-snug line-clamp-2 group-hover:text-text transition-colors">
+                {notePreview}
+              </p>
+            ) : (
+              <span className="text-text-dim text-[11px]">
+                {loadingNote ? "loading note…" : "view original note →"}
+              </span>
+            )}
+          </button>
         )}
       </div>
     </div>
@@ -202,13 +250,14 @@ export function ZapHistoryView() {
         {!loading &&
           activeEvents.map((event) => {
             if (tab === "received") {
-              const { amount, senderPubkey, comment } = parseReceipt(event);
+              const { amount, senderPubkey, comment, noteId } = parseReceipt(event);
               return (
                 <ZapRow
                   key={event.id}
                   pubkey={senderPubkey}
                   amount={amount}
                   comment={comment}
+                  noteId={noteId}
                   createdAt={event.created_at ?? 0}
                   direction="received"
                 />
@@ -216,13 +265,14 @@ export function ZapHistoryView() {
             } else {
               // Sent zaps are also kind 9735 receipts; the recipient is in the lowercase "p" tag
               const recipientPubkey = event.tags.find((t) => t[0] === "p")?.[1] ?? null;
-              const { amount, comment } = parseReceipt(event);
+              const { amount, comment, noteId } = parseReceipt(event);
               return (
                 <ZapRow
                   key={event.id}
                   pubkey={recipientPubkey}
                   amount={amount}
                   comment={comment}
+                  noteId={noteId}
                   createdAt={event.created_at ?? 0}
                   direction="sent"
                 />

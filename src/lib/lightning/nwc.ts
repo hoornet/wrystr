@@ -32,7 +32,7 @@ export function isValidNwcUri(uri: string): boolean {
 export async function payInvoiceViaNWC(nwcUri: string, bolt11: string): Promise<string> {
   const { walletPubkey, relayUrl, secret } = parseNwcUri(nwcUri);
 
-  const ndk = new NDK({ explicitRelayUrls: [relayUrl] });
+  const ndk = new NDK({ explicitRelayUrls: [relayUrl], enableOutboxModel: false });
   const signer = new NDKPrivateKeySigner(secret);
   ndk.signer = signer;
   await ndk.connect();

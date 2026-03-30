@@ -44,6 +44,13 @@ export const FALLBACK_RELAYS = [
   "wss://relay.snort.social",
 ];
 
+// Override NDK's default outbox relays (purplepag.es can have DNS issues)
+export const OUTBOX_RELAYS = [
+  "wss://relay.damus.io/",
+  "wss://nos.lol/",
+  "wss://relay.nostr.band/",
+];
+
 export function getStoredRelayUrls(): string[] {
   try {
     const stored = localStorage.getItem(RELAY_STORAGE_KEY);
@@ -63,6 +70,7 @@ export function getNDK(): NDK {
   if (!ndk) {
     ndk = new NDK({
       explicitRelayUrls: getStoredRelayUrls(),
+      outboxRelayUrls: OUTBOX_RELAYS,
     });
     ndkCreatedAt = Date.now();
   }
@@ -92,6 +100,7 @@ export async function resetNDK(): Promise<void> {
   // Create fresh instance
   ndk = new NDK({
     explicitRelayUrls: getStoredRelayUrls(),
+    outboxRelayUrls: OUTBOX_RELAYS,
   });
   ndkCreatedAt = Date.now();
 

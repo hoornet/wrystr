@@ -78,7 +78,12 @@ export const useLightningStore = create<LightningState>(() => ({
     });
 
     return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("Zap timed out after 45 seconds"));
+      }, 45000);
+
       zapper.on("complete", (results) => {
+        clearTimeout(timeout);
         const errors = Array.from(results.values()).filter((r) => r instanceof Error);
         if (errors.length > 0) {
           reject(errors[0]);
@@ -87,7 +92,12 @@ export const useLightningStore = create<LightningState>(() => ({
         }
       });
 
-      zapper.zap().catch(reject);
+      zapper.zap().then(() => {
+        // zap() resolved but "complete" event handles the result
+      }).catch((err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
     });
   },
 }));

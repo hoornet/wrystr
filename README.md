@@ -13,7 +13,7 @@ Grab the latest release from the [Releases page](https://github.com/hoornet/vega
 | Ubuntu / Debian / Mint | `.deb` | `sudo dpkg -i vega_*.deb` |
 | Fedora | `.rpm` | `sudo rpm -i vega-*.rpm` |
 | openSUSE | `.rpm` | `sudo zypper install vega-*.rpm` |
-| Arch / Manjaro | AUR | `yay -S vega-git` |
+| Arch / Manjaro | AUR | `yay -S vega-nostr-git` |
 | Windows | `.exe` installer | run the installer |
 | macOS (Apple Silicon) | `aarch64.dmg` | open and drag to Applications |
 

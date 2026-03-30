@@ -137,7 +137,7 @@ jobs:
             ```
             **Linux (Arch / Manjaro):** Install from the AUR:
             ```
-            yay -S vega-git
+            yay -S vega-nostr-git
             ```
 
             **Windows:** Download the `.exe` installer and run it.

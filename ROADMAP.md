@@ -216,7 +216,7 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 
 ### v0.3.1
 - **Feed tab persists across navigation** — back button now returns to the correct tab (Global/Following) instead of always resetting to Global
-- **Available on AUR** — Arch/Manjaro users can install with `yay -S vega-git`
+- **Available on AUR** — Arch/Manjaro users can install with `yay -S vega-nostr-git`
 
 ### v0.3.0
 - **Instant feedback** — posted notes appear in feed immediately; thread replies show up without waiting for relay

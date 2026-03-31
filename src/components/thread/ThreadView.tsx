@@ -108,16 +108,18 @@ export function ThreadView() {
     return () => { cancelled = true; };
   }, [focusedEvent.id, retryCount]);
 
-  // Scroll to focused note after tree renders (if not root)
+  // Scroll to focused note after tree fully loads.
+  // Use a short delay after each tree update; the last one wins.
+  const scrollTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
-    if (!loading && rootEvent && focusedEvent.id !== rootEvent.id) {
-      const timer = setTimeout(() => {
-        const el = document.querySelector(`[data-note-id="${focusedEvent.id}"]`);
-        el?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [loading, rootEvent?.id, focusedEvent.id]);
+    if (focusedEvent.id === rootEvent?.id) return;
+    clearTimeout(scrollTimer.current);
+    scrollTimer.current = setTimeout(() => {
+      const el = document.querySelector(`[data-note-id="${focusedEvent.id}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 400);
+    return () => clearTimeout(scrollTimer.current);
+  }, [tree, focusedEvent.id, rootEvent?.id]);
 
   // Called when any inline reply box publishes a reply
   const handleReplyPublished = (reply: NDKEvent) => {

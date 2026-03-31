@@ -108,8 +108,19 @@ function InlineThreadReply({ replyTo, rootEvent, onPublished }: {
   );
 }
 
+/** Check if any descendant of a node has the given event ID. */
+function subtreeContains(node: ThreadNodeType, id: string): boolean {
+  for (const child of node.children) {
+    if (child.event.id === id) return true;
+    if (subtreeContains(child, id)) return true;
+  }
+  return false;
+}
+
 export function ThreadNodeComponent({ node, rootEvent, onReplyPublished, focusedId, mutedPubkeys, contentMatchesMutedKeyword }: ThreadNodeProps) {
-  const [expanded, setExpanded] = useState(false);
+  // Auto-expand if the focused note is hidden inside a collapsed section
+  const focusedInChildren = focusedId ? subtreeContains(node, focusedId) : false;
+  const [expanded, setExpanded] = useState(focusedInChildren);
   const [showReplyBox, setShowReplyBox] = useState(false);
 
   // Filter out muted children

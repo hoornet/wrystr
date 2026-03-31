@@ -53,6 +53,7 @@ interface UIState {
 const SIDEBAR_KEY = "wrystr_sidebar_collapsed";
 const FONT_SIZE_KEY = "wrystr_font_size";
 const THEME_KEY = "wrystr_theme";
+const SCRIPT_FILTER_KEY = "wrystr_script_filter";
 
 export const useUIStore = create<UIState>((set, _get) => ({
   currentView: "feed",
@@ -69,7 +70,7 @@ export const useUIStore = create<UIState>((set, _get) => ({
   pendingHashtag: null,
   showHelp: false,
   showDebugPanel: false,
-  feedLanguageFilter: null,
+  feedLanguageFilter: localStorage.getItem(SCRIPT_FILTER_KEY) || null,
   followsTab: "followers",
   fontSize: parseInt(localStorage.getItem(FONT_SIZE_KEY) || "14", 10),
   themeId: localStorage.getItem(THEME_KEY) || "midnight",
@@ -102,7 +103,14 @@ export const useUIStore = create<UIState>((set, _get) => ({
     }
     return { showHelp: false, currentView: "feed", selectedNote: null, viewStack: [] };
   }),
-  setFeedLanguageFilter: (feedLanguageFilter) => set({ feedLanguageFilter }),
+  setFeedLanguageFilter: (feedLanguageFilter) => {
+    if (feedLanguageFilter) {
+      localStorage.setItem(SCRIPT_FILTER_KEY, feedLanguageFilter);
+    } else {
+      localStorage.removeItem(SCRIPT_FILTER_KEY);
+    }
+    set({ feedLanguageFilter });
+  },
   setFontSize: (fontSize) => {
     localStorage.setItem(FONT_SIZE_KEY, String(fontSize));
     set({ fontSize });

@@ -55,7 +55,7 @@ export function NoteCard({ event, focused, onReplyInThread }: NoteCardProps) {
     <article
       ref={cardRef}
       data-note-id={event.id}
-      className={`border-b border-border px-4 py-3 hover:bg-bg-hover transition-colors duration-100 cursor-pointer group/card${focused ? " ring-1 ring-inset ring-accent/30" : ""}`}
+      className={`border-b border-border px-4 py-3 hover:bg-bg-hover transition-colors duration-100 cursor-pointer group/card${focused ? " bg-accent/10 border-l-2 border-l-accent" : ""}`}
       onClick={(e) => {
         // Don't navigate if clicking on interactive elements
         const target = e.target as HTMLElement;

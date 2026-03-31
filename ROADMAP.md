@@ -22,7 +22,7 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 
 ## Phase 1 — Complete the core experience ✓ COMPLETE
 
-*Shipped in v0.1.5. Tested on Windows (v0.1.7 fixes applied). Ready for OpenSats application (April 1, 2026).*
+*Shipped in v0.1.5. Tested on Windows (v0.1.7 fixes applied).*
 
 - ✓ Long-form article reader (NIP-23) — `nostr:naddr1…` links open in-app reader
 - ✓ Zap counts on notes — ⚡ N sats inline on every note
@@ -62,8 +62,10 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 ## Up next — Polish & Expansion
 
 - **UI makeover** — visual polish pass on buttons, spacing, hover states, transitions; more native feel
+- **Encrypted group chat** — private group conversations via NIP-29 (relay-based groups) + NIP-44 (encryption); research NIP-104 (gift-wrapped E2E) for small private groups
+- **NIP-72 moderated communities** — Reddit-style public communities with moderator approval flow (kind 34550 definition, kind 1111 posts, kind 4550 approvals)
 - **Nostr NIP research sprint** — comprehensive review of all NIPs for new features to implement
-- **Remaining Phase 4** — custom feeds, note stats, zap splits, communities/lists
+- **Remaining Phase 4** — custom feeds, note stats, zap splits
 - Web of Trust scoring
 
 ---

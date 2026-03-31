@@ -69,7 +69,11 @@ jobs:
 
             > **Windows note:** The installer is not yet code-signed. Windows SmartScreen will show an "Unknown publisher" warning — click "More info → Run anyway" to install.
 
-            ### New in v0.10.0 — Renamed to Vega + UX Improvements
+            ### New in v0.10.1 — Search Reliability
+            - **Search resilience** — each search relay (relay.nostr.band, search.nos.today, nostr.wine) now queried independently; a dead relay no longer blocks results from the others
+            - **nostr: URI prefix** — pasting `nostr:nevent1...` or `nostr:npub1...` share links in search now works (strips NIP-21 prefix)
+
+            ### v0.10.0 — Renamed to Vega + UX Improvements
             - **Renamed from Wrystr to Vega** — named after Jurij Vega (1754–1802), Slovenian mathematician and artillery officer. Fresh identity, same mission: a desktop Nostr client built for writers.
             - **Paste nevent/note1/naddr in search** — pasting a Nostr event link navigates directly to the note or article (GitHub #2)
             - **Copy npub from profiles** — click the pubkey on any profile to copy the full npub to clipboard (GitHub #2)

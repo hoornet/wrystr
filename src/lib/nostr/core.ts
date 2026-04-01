@@ -104,6 +104,13 @@ export async function resetNDK(): Promise<void> {
   const oldInstance = ndk;
   const oldSigner = oldInstance?.signer ?? null;
 
+  // Preserve all relay URLs (stored + outbox-discovered) before resetting
+  const oldRelayUrls = oldInstance?.pool?.relays
+    ? Array.from(oldInstance.pool.relays.keys()).map(normalizeRelayUrl)
+    : [];
+  const storedUrls = getStoredRelayUrls();
+  const allUrls = [...new Set([...storedUrls, ...oldRelayUrls])];
+
   // Disconnect all relays on old instance
   if (oldInstance?.pool?.relays) {
     for (const relay of oldInstance.pool.relays.values()) {
@@ -111,9 +118,9 @@ export async function resetNDK(): Promise<void> {
     }
   }
 
-  // Create fresh instance
+  // Create fresh instance with all known relay URLs
   ndk = new NDK({
-    explicitRelayUrls: getStoredRelayUrls(),
+    explicitRelayUrls: allUrls,
     outboxRelayUrls: OUTBOX_RELAYS,
   });
   ndkCreatedAt = Date.now();

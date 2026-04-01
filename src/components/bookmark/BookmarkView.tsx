@@ -91,10 +91,16 @@ export function BookmarkView() {
         if (!cancelled) {
           const fetched = results.filter((e): e is NDKEvent => e !== null);
           // Separate articles (kind 30023) bookmarked via e-tag from notes
-          const notesOnly = fetched.filter((e) => e.kind !== 30023)
-            .sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
+          const fetchedNotes = fetched.filter((e) => e.kind !== 30023);
           const articlesFromETag = fetched.filter((e) => e.kind === 30023);
-          setNotes(notesOnly);
+          // Merge with existing (cached) notes — don't replace, so cached notes survive relay timeouts
+          setNotes((prev) => {
+            const byId = new Map(prev.map((e) => [e.id, e]));
+            for (const e of fetchedNotes) byId.set(e.id, e);
+            return Array.from(byId.values())
+              .filter((e) => bookmarkedIds.includes(e.id!))
+              .sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
+          });
           // Merge any articles found via e-tag into the articles list
           if (articlesFromETag.length > 0) {
             setArticles((prev) => {

@@ -153,12 +153,12 @@ export function AccountSwitcher() {
               className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => openProfile(pubkey)}
             >
-              <Avatar account={current} size="w-8 h-8" textSize="text-[12px]" />
-              <span className={`text-[12px] font-medium truncate flex-1 ${loggedIn ? "text-text" : "text-text-muted"}`}>{displayName(current)}</span>
+              <Avatar account={current} size="w-10 h-10" textSize="text-[14px]" />
+              <span className={`text-[14px] font-medium truncate flex-1 ${loggedIn ? "text-text" : "text-text-muted"}`}>{displayName(current)}</span>
             </div>
             <button
               onClick={() => setOpen((v) => !v)}
-              className="text-text-dim hover:text-text text-[10px] transition-colors px-0.5"
+              className="text-text-dim hover:text-text text-[14px] transition-colors px-1"
               title="Switch account"
             >
               {open ? "▲" : "▼"}

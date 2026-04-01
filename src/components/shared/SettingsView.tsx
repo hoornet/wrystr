@@ -331,8 +331,8 @@ function ThemeSection() {
 const FONT_PRESETS = [
   { label: "Small", size: 12 },
   { label: "Normal", size: 14 },
-  { label: "Large", size: 16 },
-  { label: "Extra Large", size: 18 },
+  { label: "Large", size: 17 },
+  { label: "Extra Large", size: 20 },
 ];
 
 function FontSizeSection() {

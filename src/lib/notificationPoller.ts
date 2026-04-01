@@ -96,7 +96,7 @@ async function pollOnce(pubkey: string) {
       for (const e of newFollowers) {
         const name = await getProfileName(e.pubkey);
         notifyFollower(name).catch(() => {});
-        useNotificationsStore.getState().incrementNewFollowers();
+        useNotificationsStore.getState().addNewFollower(e.pubkey);
       }
     }
   } catch { /* non-critical */ }

@@ -11,9 +11,11 @@ import { shortenPubkey, profileName } from "../../lib/utils";
 function FollowRow({
   pubkey,
   followsYou,
+  isNew,
 }: {
   pubkey: string;
   followsYou?: boolean;
+  isNew?: boolean;
 }) {
   const profile = useProfile(pubkey);
   const name = profileName(profile, shortenPubkey(pubkey));
@@ -60,6 +62,9 @@ function FollowRow({
           {followsYou && (
             <span className="text-[9px] text-text-dim bg-bg-raised px-1.5 py-0.5 rounded-sm">follows you</span>
           )}
+          {isNew && (
+            <span className="text-[9px] text-accent bg-accent/15 px-1.5 py-0.5 rounded-sm font-medium">new</span>
+          )}
         </div>
       </div>
 
@@ -82,12 +87,14 @@ function FollowRow({
 export function FollowsView() {
   const { followsTab, setFollowsTab } = useUIStore();
   const { pubkey, follows } = useUserStore();
-  const { clearNewFollowers } = useNotificationsStore();
+  const { newFollowerPubkeys, clearNewFollowers } = useNotificationsStore();
 
   const [followers, setFollowers] = useState<string[]>([]);
   const [followersLoading, setFollowersLoading] = useState(false);
   const [followersError, setFollowersError] = useState<string | null>(null);
   const [followersFetched, setFollowersFetched] = useState(false);
+  // Snapshot new follower pubkeys on mount, before clearing
+  const [newPubkeys] = useState(() => new Set(newFollowerPubkeys));
 
   // Clear badge when view opens
   useEffect(() => {
@@ -191,8 +198,14 @@ export function FollowsView() {
             {!followersLoading && !followersError && followers.length === 0 && followersFetched && (
               <p className="px-4 py-8 text-text-dim text-[12px] text-center">No followers found yet.</p>
             )}
-            {followers.map((pk) => (
-              <FollowRow key={pk} pubkey={pk} />
+            {[...followers]
+              .sort((a, b) => {
+                const aNew = newPubkeys.has(a) ? 1 : 0;
+                const bNew = newPubkeys.has(b) ? 1 : 0;
+                return bNew - aNew; // new followers first
+              })
+              .map((pk) => (
+              <FollowRow key={pk} pubkey={pk} isNew={newPubkeys.has(pk)} />
             ))}
           </>
         )}

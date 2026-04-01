@@ -17,6 +17,7 @@ interface NotificationsState {
   dmLastSeen: Record<string, number>;
   dmUnreadCount: number;
   newFollowersCount: number;
+  newFollowerPubkeys: Set<string>;
 
   loadFromDb: (pubkey: string) => Promise<void>;
   fetchNotifications: (pubkey: string) => Promise<void>;
@@ -25,7 +26,7 @@ interface NotificationsState {
   isRead: (eventId: string) => boolean;
   markDMRead: (partnerPubkey: string) => void;
   computeDMUnread: (conversations: Array<{ partnerPubkey: string; lastAt: number }>) => void;
-  incrementNewFollowers: () => void;
+  addNewFollower: (pubkey: string) => void;
   clearNewFollowers: () => void;
 }
 
@@ -76,6 +77,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   dmLastSeen: loadDMLastSeen(),
   dmUnreadCount: 0,
   newFollowersCount: 0,
+  newFollowerPubkeys: new Set<string>(),
 
   loadFromDb: async (pubkey: string) => {
     const isNewAccount = pubkey !== get().currentPubkey;
@@ -210,6 +212,9 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     set({ dmUnreadCount });
   },
 
-  incrementNewFollowers: () => set((s) => ({ newFollowersCount: s.newFollowersCount + 1 })),
-  clearNewFollowers: () => set({ newFollowersCount: 0 }),
+  addNewFollower: (pubkey: string) => set((s) => ({
+    newFollowersCount: s.newFollowersCount + 1,
+    newFollowerPubkeys: new Set([...s.newFollowerPubkeys, pubkey]),
+  })),
+  clearNewFollowers: () => set({ newFollowersCount: 0, newFollowerPubkeys: new Set() }),
 }));

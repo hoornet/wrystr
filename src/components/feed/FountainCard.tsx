@@ -27,8 +27,8 @@ export function FountainCard({ seg }: { seg: ContentSegment }) {
         rel="noopener noreferrer"
         className="mt-2 flex items-center gap-3 rounded-sm bg-bg-raised border border-border p-3 hover:bg-bg-hover transition-colors cursor-pointer"
       >
-        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-          <span className="text-blue-400 text-lg font-bold">F</span>
+        <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
+          <span className="text-accent text-lg font-bold">F</span>
         </div>
         <div className="min-w-0">
           <div className="text-[11px] text-text-muted">Fountain.fm</div>
@@ -74,8 +74,8 @@ export function FountainCard({ seg }: { seg: ContentSegment }) {
           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
         />
       ) : (
-        <div className="w-12 h-12 rounded-sm bg-blue-500/20 flex items-center justify-center shrink-0">
-          <span className="text-blue-400 text-lg font-bold">F</span>
+        <div className="w-12 h-12 rounded-sm bg-accent/20 flex items-center justify-center shrink-0">
+          <span className="text-accent text-lg font-bold">F</span>
         </div>
       )}
       <div className="min-w-0 flex-1">

@@ -65,7 +65,7 @@ export function AboutView() {
           </p>
           <button
             onClick={() => setShowZap(true)}
-            className="px-4 py-2 text-[12px] font-medium bg-zap hover:bg-zap/90 text-white transition-colors"
+            className="px-4 py-2 text-[12px] font-medium bg-zap hover:bg-zap/90 text-zap-text transition-colors"
           >
             ⚡ Zap hoornet
           </button>

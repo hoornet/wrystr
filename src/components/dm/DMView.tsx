@@ -220,7 +220,7 @@ function ThreadPanel({
           <button
             onClick={handleSend}
             disabled={!text.trim() || sending}
-            className="px-3 self-end py-2 text-[11px] bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+            className="px-3 self-end py-2 text-[11px] bg-accent hover:bg-accent-hover text-accent-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
           >
             {sending ? "…" : "send"}
           </button>

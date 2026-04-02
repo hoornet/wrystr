@@ -328,7 +328,7 @@ export function ArticleEditor() {
           <button
             onClick={handlePublish}
             disabled={!canPublish || publishing || published}
-            className="px-4 py-1 text-[11px] bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="px-4 py-1 text-[11px] bg-accent hover:bg-accent-hover text-accent-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {published ? "published ✓" : publishing ? "publishing…" : "publish"}
           </button>
@@ -493,7 +493,7 @@ function DraftListView({ onNewDraft }: { onNewDraft: () => void }) {
         </div>
         <button
           onClick={onNewDraft}
-          className="px-3 py-1 text-[11px] bg-accent hover:bg-accent-hover text-white transition-colors"
+          className="px-3 py-1 text-[11px] bg-accent hover:bg-accent-hover text-accent-text transition-colors"
         >
           new draft
         </button>

@@ -69,7 +69,7 @@ function NewAccountTab({ onClose }: { onClose: () => void }) {
       <button
         onClick={handleConfirm}
         disabled={!confirmed || logging}
-        className="w-full px-4 py-2 text-[12px] bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        className="w-full px-4 py-2 text-[12px] bg-accent hover:bg-accent-hover text-accent-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
       >
         {logging ? "logging in…" : "create account"}
       </button>
@@ -197,7 +197,7 @@ export function LoginModal({ onClose }: LoginModalProps) {
               <button
                 onClick={handleLogin}
                 disabled={!input.trim() || loading}
-                className="w-full mt-3 px-4 py-2 text-[12px] bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-full mt-3 px-4 py-2 text-[12px] bg-accent hover:bg-accent-hover text-accent-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 {loading
                   ? (tab === "bunker" ? "Connecting…" : "Logging in…")

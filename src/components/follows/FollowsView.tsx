@@ -74,7 +74,7 @@ function FollowRow({
           className={`shrink-0 px-3 py-1 text-[11px] transition-colors ${
             isFollowing
               ? "text-text-dim border border-border hover:text-danger hover:border-danger"
-              : "bg-accent hover:bg-accent-hover text-white"
+              : "bg-accent hover:bg-accent-hover text-accent-text"
           }`}
         >
           {isFollowing ? "unfollow" : "follow"}

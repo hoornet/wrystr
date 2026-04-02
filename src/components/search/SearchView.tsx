@@ -74,7 +74,7 @@ function UserRow({ user }: { user: ParsedUser }) {
           className={`text-[11px] px-3 py-1 border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${
             isFollowing
               ? "border-border text-text-muted hover:text-danger hover:border-danger/40"
-              : "border-accent/60 text-accent hover:bg-accent hover:text-white"
+              : "border-accent/60 text-accent hover:bg-accent hover:text-accent-text"
           }`}
         >
           {pending ? "…" : isFollowing ? "unfollow" : "follow"}
@@ -114,7 +114,7 @@ function SuggestionFollowButton({ pubkey }: { pubkey: string }) {
       className={`text-[11px] px-3 py-1 border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${
         isFollowing
           ? "border-border text-text-muted hover:text-danger hover:border-danger/40"
-          : "border-accent/60 text-accent hover:bg-accent hover:text-white"
+          : "border-accent/60 text-accent hover:bg-accent hover:text-accent-text"
       }`}
     >
       {pending ? "..." : isFollowing ? "unfollow" : "follow"}

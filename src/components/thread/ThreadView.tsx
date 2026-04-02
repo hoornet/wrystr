@@ -248,7 +248,7 @@ export function ThreadView() {
                   <button
                     onClick={handleRootReply}
                     disabled={!replyText.trim() || replying}
-                    className="px-2 py-0.5 text-[10px] bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="px-2 py-0.5 text-[10px] bg-accent hover:bg-accent-hover text-accent-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     {replySent ? "replied ✓" : replying ? "posting..." : "reply"}
                   </button>

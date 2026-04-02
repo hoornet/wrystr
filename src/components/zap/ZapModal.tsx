@@ -68,7 +68,7 @@ export function ZapModal({ target, recipientName, onClose }: ZapModalProps) {
             </p>
             <button
               onClick={() => { onClose(); setView("settings"); }}
-              className="px-4 py-1.5 text-[11px] border border-accent/60 text-accent hover:bg-accent hover:text-white transition-colors"
+              className="px-4 py-1.5 text-[11px] border border-accent/60 text-accent hover:bg-accent hover:text-accent-text transition-colors"
             >
               go to settings →
             </button>
@@ -123,7 +123,7 @@ export function ZapModal({ target, recipientName, onClose }: ZapModalProps) {
             <button
               onClick={handleZap}
               disabled={effectiveAmount <= 0}
-              className="w-full py-2 text-[12px] font-medium bg-zap hover:bg-zap/90 text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-full py-2 text-[12px] font-medium bg-zap hover:bg-zap/90 text-zap-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               ⚡ Zap {effectiveAmount > 0 ? `${effectiveAmount} sats` : ""}
             </button>

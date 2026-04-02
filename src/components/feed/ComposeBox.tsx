@@ -313,7 +313,7 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
               <button
                 onClick={handlePublish}
                 disabled={!canPost}
-                className="px-3 py-1 text-[11px] bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="px-3 py-1 text-[11px] bg-accent hover:bg-accent-hover text-accent-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 {publishing ? "posting…" : "post"}
               </button>

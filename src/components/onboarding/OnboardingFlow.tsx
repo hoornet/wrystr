@@ -47,7 +47,7 @@ function WelcomeStep({ onCreateNew, onHaveKey }: { onCreateNew: () => void; onHa
       <div className="space-y-3">
         <button
           onClick={onCreateNew}
-          className="w-full py-2.5 text-[13px] font-medium bg-accent hover:bg-accent-hover text-white transition-colors"
+          className="w-full py-2.5 text-[13px] font-medium bg-accent hover:bg-accent-hover text-accent-text transition-colors"
         >
           Create a new identity
         </button>
@@ -101,7 +101,7 @@ function CreateStep({ onNext }: { onNext: (signer: NDKPrivateKeySigner) => void 
 
       <button
         onClick={() => onNext(signer)}
-        className="w-full py-2.5 text-[13px] font-medium bg-accent hover:bg-accent-hover text-white transition-colors"
+        className="w-full py-2.5 text-[13px] font-medium bg-accent hover:bg-accent-hover text-accent-text transition-colors"
       >
         Next: back up your secret key →
       </button>
@@ -185,7 +185,7 @@ function BackupStep({ signer, onComplete }: { signer: NDKPrivateKeySigner; onCom
       <button
         onClick={handleStart}
         disabled={!confirmed || saving}
-        className="w-full py-2.5 text-[13px] font-medium bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        className="w-full py-2.5 text-[13px] font-medium bg-accent hover:bg-accent-hover text-accent-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
       >
         {saving ? "Setting up…" : "Start using Vega"}
       </button>
@@ -267,7 +267,7 @@ function LoginStep({ onBack, onComplete }: { onBack: () => void; onComplete: () 
         <button
           onClick={handleLogin}
           disabled={!value.trim() || loading}
-          className="w-full py-2.5 text-[13px] font-medium bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="w-full py-2.5 text-[13px] font-medium bg-accent hover:bg-accent-hover text-accent-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
           {loading ? (mode === "bunker" ? "Connecting…" : "Logging in…") : "Log in"}
         </button>

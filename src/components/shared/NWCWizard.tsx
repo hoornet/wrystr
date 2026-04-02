@@ -146,7 +146,7 @@ function WalletCard({ wallet, onSelect }: { wallet: WalletDef; onSelect: () => v
         )}
         <button
           onClick={onSelect}
-          className="text-[10px] px-2 py-1 border border-accent/60 text-accent hover:bg-accent hover:text-white transition-colors"
+          className="text-[10px] px-2 py-1 border border-accent/60 text-accent hover:bg-accent hover:text-accent-text transition-colors"
         >
           connect →
         </button>

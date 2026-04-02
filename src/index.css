@@ -11,7 +11,9 @@
   --color-text-dim: #555555;
   --color-accent: #8b5cf6;
   --color-accent-hover: #7c3aed;
+  --color-accent-text: #ffffff;
   --color-zap: #f59e0b;
+  --color-zap-text: #000000;
   --color-danger: #ef4444;
   --color-warning: #f59e0b;
   --color-success: #22c55e;

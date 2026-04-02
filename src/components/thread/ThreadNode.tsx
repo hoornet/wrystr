@@ -99,7 +99,7 @@ function InlineThreadReply({ replyTo, rootEvent, onPublished }: {
         <button
           onClick={handleSubmit}
           disabled={!text.trim() || replying}
-          className="px-2 py-0.5 text-[10px] bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="px-2 py-0.5 text-[10px] bg-accent hover:bg-accent-hover text-accent-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
           {sent ? "replied ✓" : replying ? "posting..." : "reply"}
         </button>

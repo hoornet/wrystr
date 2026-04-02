@@ -9,7 +9,9 @@ interface ThemeColors {
   "text-dim": string;
   accent: string;
   "accent-hover": string;
+  "accent-text": string;
   zap: string;
+  "zap-text": string;
   danger: string;
   warning: string;
   success: string;
@@ -36,7 +38,9 @@ export const themes: Theme[] = [
       "text-dim": "#555555",
       accent: "#8b5cf6",
       "accent-hover": "#7c3aed",
+      "accent-text": "#ffffff",
       zap: "#f59e0b",
+      "zap-text": "#000000",
       danger: "#ef4444",
       warning: "#f59e0b",
       success: "#22c55e",
@@ -56,7 +60,9 @@ export const themes: Theme[] = [
       "text-dim": "#9ca3af",
       accent: "#7c3aed",
       "accent-hover": "#6d28d9",
+      "accent-text": "#ffffff",
       zap: "#d97706",
+      "zap-text": "#ffffff",
       danger: "#dc2626",
       warning: "#d97706",
       success: "#16a34a",
@@ -76,7 +82,9 @@ export const themes: Theme[] = [
       "text-dim": "#6c7086",
       accent: "#cba6f7",
       "accent-hover": "#b4befe",
+      "accent-text": "#1e1e2e",
       zap: "#f9e2af",
+      "zap-text": "#1e1e2e",
       danger: "#f38ba8",
       warning: "#f9e2af",
       success: "#a6e3a1",
@@ -96,7 +104,9 @@ export const themes: Theme[] = [
       "text-dim": "#7a6452",
       accent: "#e09850",
       "accent-hover": "#c47f3a",
+      "accent-text": "#2b2018",
       zap: "#f0c040",
+      "zap-text": "#2b2018",
       danger: "#d45040",
       warning: "#e0a040",
       success: "#7ab860",
@@ -116,7 +126,9 @@ export const themes: Theme[] = [
       "text-dim": "#665c54",
       accent: "#fe8019",
       "accent-hover": "#d65d0e",
+      "accent-text": "#282828",
       zap: "#fabd2f",
+      "zap-text": "#282828",
       danger: "#fb4934",
       warning: "#fabd2f",
       success: "#b8bb26",
@@ -136,7 +148,9 @@ export const themes: Theme[] = [
       "text-dim": "#7b88a1",
       accent: "#88c0d0",
       "accent-hover": "#81a1c1",
+      "accent-text": "#2e3440",
       zap: "#ebcb8b",
+      "zap-text": "#2e3440",
       danger: "#bf616a",
       warning: "#ebcb8b",
       success: "#a3be8c",
@@ -156,7 +170,9 @@ export const themes: Theme[] = [
       "text-dim": "#006b1a",
       accent: "#00ff41",
       "accent-hover": "#33ff66",
+      "accent-text": "#0a0a0a",
       zap: "#ffff00",
+      "zap-text": "#0a0a0a",
       danger: "#ff0000",
       warning: "#ffff00",
       success: "#00ff41",

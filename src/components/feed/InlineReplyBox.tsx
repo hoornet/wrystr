@@ -228,7 +228,7 @@ export function InlineReplyBox({ event, name, rootEvent }: InlineReplyBoxProps) 
         <button
           onClick={handleReplySubmit}
           disabled={(!replyText.trim() && attachments.length === 0) || replying || uploading}
-          className="px-2 py-0.5 text-[10px] bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="px-2 py-0.5 text-[10px] bg-accent hover:bg-accent-hover text-accent-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
           {replySent ? "replied ✓" : replying ? "posting…" : "reply"}
         </button>

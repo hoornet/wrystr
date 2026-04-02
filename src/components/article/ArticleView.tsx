@@ -456,7 +456,7 @@ export function ArticleView() {
                   {loggedIn && (
                     <button
                       onClick={() => setShowZap(true)}
-                      className="text-[11px] px-4 py-1.5 bg-zap hover:bg-zap/90 text-white transition-colors"
+                      className="text-[11px] px-4 py-1.5 bg-zap hover:bg-zap/90 text-zap-text transition-colors"
                     >
                       ⚡ Zap {authorName}
                     </button>

@@ -29,6 +29,9 @@ RENAME_ARTICLE_DRAFT.md
 TODO.md
 test/accounts.json
 
+# Skills / agents
+.agents/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

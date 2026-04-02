@@ -69,9 +69,19 @@ jobs:
 
             > **Windows note:** The installer is not yet code-signed. Windows SmartScreen will show an "Unknown publisher" warning — click "More info → Run anyway" to install.
 
-            ### New in v0.10.1 — Search Reliability
-            - **Search resilience** — each search relay (relay.nostr.band, search.nos.today, nostr.wine) now queried independently; a dead relay no longer blocks results from the others
-            - **nostr: URI prefix** — pasting `nostr:nevent1...` or `nostr:npub1...` share links in search now works (strips NIP-21 prefix)
+            ### New in v0.11.0 — Embedded Relay & Polish
+            - **Embedded Nostr relay** — built-in strfry relay with catch-up sync on startup; your notes are always available locally even when remote relays are slow or offline
+            - **naddr clickable links** — `nostr:naddr1…` references resolve to clickable named links (article titles, etc.)
+            - **New follower badges** — recently gained followers marked with "new" badge, sorted to top of follows list
+            - **New themes** — Sepia and Nord Frost replace Tokyo Night and Ethereal
+            - **Bookmark reliability** — batch fetch with deduplication, debounced publishing prevents race conditions
+            - **Relay pool resilience** — resetNDK preserves outbox-discovered relay URLs (fixes relay pool dropping to 3)
+            - **Larger font sizes** — Large (17px) and Extra Large (20px) presets increased
+            - **Account switcher** — larger avatar, name, and arrow for easier switching
+            - **Crash fix** — malformed Nostr profiles no longer cause React error #31
+
+            ### v0.10.1 — Search Reliability
+            - Search resilience, nostr: URI prefix support in search
 
             ### v0.10.0 — Renamed to Vega + UX Improvements
             - **Renamed from Wrystr to Vega** — named after Jurij Vega (1754–1802), Slovenian mathematician and artillery officer. Fresh identity, same mission: a desktop Nostr client built for writers.

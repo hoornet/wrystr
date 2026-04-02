@@ -152,7 +152,7 @@ CI triggers on the tag and builds all three platforms (Ubuntu, Windows, macOS AR
 - **Profile media gallery** — "Media" tab on profiles with grid layout; images open lightbox, videos/audio navigate to thread
 - **Emoji picker** — shared categorized emoji picker (Frequent/Faces/Gestures/Objects/Symbols) in compose box, inline reply, thread reply; emoji reaction picker on note cards via visible + button
 - **External link opener** — global click handler intercepts http(s) links and opens in system browser via `@tauri-apps/plugin-opener`
-- **Color themes** — 7 built-in themes (Midnight, Light, Catppuccin Mocha, Tokyo Night, Gruvbox, Ethereal, Hackerman); CSS custom properties swapped at runtime; persisted to localStorage
+- **Color themes** — 7 built-in themes (Midnight, Light, Catppuccin Mocha, Sepia, Gruvbox, Nord Frost, Hackerman); CSS custom properties swapped at runtime; persisted to localStorage
 - **Font size presets** — Small/Normal/Large/Extra Large; CSS zoom scaling on document root; persisted to localStorage
 - **Web of Trust** — Vertex DVM integration (kind 5312→6312); personalized "Followed by people you trust" on profiles with clickable follower avatars
 - **SQLite-backed notifications** — instant load on startup from local cache; relay diff merged in background; read state persists in DB across restarts
@@ -161,6 +161,11 @@ CI triggers on the tag and builds all three platforms (Ubuntu, Windows, macOS AR
 - **SQLite-backed articles cache** — articles feed (latest tab) loads instantly from DB
 - **Instant own-profile load** — sidebar badge shows name/picture from DB cache immediately, no raw npub on slow relays
 - **Retry-on-empty pattern** — followers, profile notes/articles, hashtag feeds retry once after 3s if relays return empty
+- **Embedded Nostr relay** — built-in strfry relay with catch-up sync on startup; notes always available locally
+- **naddr clickable links** — `nostr:naddr1…` references resolve to clickable named links (article titles)
+- **New follower badges** — recently gained followers marked with "new" badge, sorted to top of follows list
+- **Batch bookmark fetch** — fetches bookmarked notes with `{ ids: [...] }` filter; debounced kind 10003 publishes prevent race conditions
+- **Resilient relay pool** — resetNDK preserves outbox-discovered relay URLs (fixes relay pool dropping to 3)
 
 **Not yet implemented:**
 - NIP-96 file storage

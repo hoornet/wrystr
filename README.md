@@ -58,6 +58,7 @@ sudo dnf install gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-liba
 - **Mute users** (NIP-51) — muted list synced to relays, filtered from feed
 - **Long-form article experience** (NIP-23) — **markdown toolbar** (bold, italic, heading, link, image, quote, code, list) with keyboard shortcuts (Ctrl+B/I/K); **multi-draft management** with draft list, resume, delete; **cover image file picker**; dedicated article feed with Latest/Following tabs; article search by keyword or hashtag; article reader with reading time, bookmark, like, and zap; profile Articles tab
 - **Quoted note inline preview** — `nostr:note1…` / `nostr:nevent1…` renders as an inline card
+- **naddr clickable links** — `nostr:naddr1…` references resolve to clickable named links (article titles, etc.)
 - **Syntax highlighting** — code blocks in notes and articles render with syntax highlighting
 - Note rendering: images, video, mentions, hashtags, njump.me link interception
 - **External links** — all http(s) links open in your system browser via Tauri opener
@@ -65,12 +66,14 @@ sudo dnf install gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-liba
 - **Keyword muting** — word/phrase mute list with client-side filtering across all views
 - **Direct Messages** (NIP-04 + NIP-17 gift wrap) — conversation list, thread view, per-message decryption; unread badge in sidebar
 - **Notifications** — background poller (60s) for mentions, zaps, new followers; each type independently toggleable; OS push notifications; 🔔 in sidebar with unread badge
+- **New follower badges** — recently gained followers marked with a "new" badge and sorted to the top of your follows list
 
 **Relay & network**
 - **Relay status badge** — compact "8/12 relays" indicator in feed header with color coding (green/yellow/red by connection ratio); hover shows per-relay connection status
 - **Toast notifications** — transient status messages for relay events: "Connection lost — reconnecting", "Back online", "Relays reconnected"
 - **Relay health checker** — NIP-11 info fetch, WebSocket latency probing, online/slow/offline classification; expandable cards show all supported NIPs, software, description; per-relay remove button; "Remove dead" strips offline relays; "Publish list" publishes NIP-65 relay list; auto-checks on mount
 - **Relay recommendations** — discover relays based on your follows' NIP-65 relay lists; shows follow count, one-click "Add"
+- **Embedded Nostr relay** — built-in strfry relay with catch-up sync on startup; your notes are always available locally even when remote relays are slow or offline
 - Relay management: add/remove relays, all in one consolidated Relays view
 - **NIP-65 outbox model** — reads user relay lists (kind 10002) so you see notes from people who publish to their own relays; publish your own relay list to Nostr
 
@@ -93,7 +96,7 @@ sudo dnf install gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-liba
 - **NIP-05 verification badges** — cached verification with green checkmark on note cards
 
 **Personalization**
-- **Color themes** — 7 built-in themes: Midnight (default dark), Light, Catppuccin Mocha, Tokyo Night, Gruvbox, Ethereal, Hackerman; instant switching from Settings
+- **Color themes** — 7 built-in themes: Midnight (default dark), Light, Catppuccin Mocha, Sepia, Gruvbox, Nord Frost, Hackerman; instant switching from Settings
 - **Font size** — Small / Normal / Large / Extra Large presets; scales the entire UI uniformly
 
 **Performance & UX**
@@ -164,9 +167,9 @@ See [ROADMAP.md](./ROADMAP.md) for the full prioritised next steps.
 
 Up next:
 - UI polish and visual makeover
-- Nostr NIP research sprint — expanding protocol support
-- Web of Trust scoring
 - Custom feeds / lists
+- NIP research sprint — expanding protocol support
+- NIP-58 badges, NIP-72 communities
 
 ## Support
 

@@ -120,7 +120,7 @@ export function NoteActions({ event, onReplyToggle, showReply }: NoteActionsProp
           {/* Emoji picker popover */}
           {showEmojiPicker && (
             <>
-              <div className="fixed inset-0 z-[9]" onClick={() => setShowEmojiPicker(false)} />
+              <div className="fixed inset-0 z-[9]" role="presentation" onClick={() => setShowEmojiPicker(false)} />
               <div className="absolute bottom-6 left-0 bg-bg-raised border border-border shadow-lg z-10 flex gap-0.5 px-1.5 py-1">
                 {REACTION_EMOJIS.map((emoji) => (
                   <button

@@ -71,7 +71,7 @@ export function ArticleCard({ event }: { event: NDKEvent }) {
               {profile?.picture ? (
                 <img
                   src={profile.picture}
-                  alt=""
+                  alt={`${authorName}'s avatar`}
                   className="w-5 h-5 rounded-sm object-cover"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                 />
@@ -108,7 +108,7 @@ export function ArticleCard({ event }: { event: NDKEvent }) {
           <div className="shrink-0 w-24 h-20 rounded-sm overflow-hidden bg-bg-raised">
             <img
               src={image}
-              alt=""
+              alt={`Cover image for ${title || "article"}`}
               className="w-full h-full object-cover"
               onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
             />

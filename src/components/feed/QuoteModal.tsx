@@ -46,13 +46,16 @@ export function QuoteModal({ event, authorName, authorAvatar, onClose, onPublish
   return (
     <div
       className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="quote-modal-title"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-bg border border-border w-full max-w-md mx-4 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="text-text text-sm font-medium">Quote note</h2>
-          <button onClick={onClose} className="text-text-dim hover:text-text text-lg leading-none">×</button>
+          <h2 id="quote-modal-title" className="text-text text-sm font-medium">Quote note</h2>
+          <button onClick={onClose} aria-label="Close" className="text-text-dim hover:text-text text-lg leading-none">×</button>
         </div>
 
         {/* Compose */}
@@ -72,7 +75,7 @@ export function QuoteModal({ event, authorName, authorAvatar, onClose, onPublish
           <div className="border border-border px-3 py-2.5 bg-bg-raised rounded-sm">
             <div className="flex items-center gap-2 mb-1.5">
               {authorAvatar ? (
-                <img src={authorAvatar} alt="" className="w-4 h-4 rounded-sm object-cover" />
+                <img src={authorAvatar} alt={`${authorName}'s avatar`} className="w-4 h-4 rounded-sm object-cover" />
               ) : (
                 <div className="w-4 h-4 rounded-sm bg-accent/20 flex items-center justify-center text-accent text-[8px]">
                   {authorName.charAt(0).toUpperCase()}

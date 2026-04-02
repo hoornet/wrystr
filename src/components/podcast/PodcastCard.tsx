@@ -16,7 +16,7 @@ export function PodcastCard({ show, onClick }: PodcastCardProps) {
         {show.artworkUrl ? (
           <img
             src={show.artworkUrl}
-            alt=""
+            alt={`${show.title || "Podcast"} artwork`}
             className="w-16 h-16 rounded-sm object-cover bg-bg"
             loading="lazy"
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}

@@ -45,6 +45,9 @@ export function ZapModal({ target, recipientName, onClose }: ZapModalProps) {
   return (
     <div
       className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Zap ${recipientName}`}
       onClick={handleBackdrop}
     >
       <div className="bg-bg border border-border w-80 shadow-2xl">
@@ -54,7 +57,7 @@ export function ZapModal({ target, recipientName, onClose }: ZapModalProps) {
             <div className="text-text text-[13px] font-medium">⚡ Zap {recipientName}</div>
             {!nwcUri && <div className="text-danger text-[10px] mt-0.5">No wallet connected</div>}
           </div>
-          <button onClick={onClose} className="text-text-dim hover:text-text text-[11px] transition-colors">✕</button>
+          <button onClick={onClose} aria-label="Close" className="text-text-dim hover:text-text text-[11px] transition-colors">✕</button>
         </div>
 
         {/* No wallet state */}

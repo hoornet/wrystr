@@ -213,7 +213,7 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
           {avatar ? (
             <img
               src={avatar}
-              alt=""
+              alt="Your avatar"
               className="w-9 h-9 rounded-sm object-cover bg-bg-raised"
               onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
             />
@@ -252,7 +252,7 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
                   ) : (
                     <img
                       src={url}
-                      alt=""
+                      alt="Attachment preview"
                       className="h-16 w-auto rounded-sm border border-border object-cover"
                       onError={(e) => { (e.target as HTMLImageElement).className = "h-16 w-20 rounded-sm border border-border bg-bg-raised"; }}
                     />

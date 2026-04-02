@@ -95,7 +95,7 @@ function ZapRow({
         onClick={() => pubkey && openProfile(pubkey)}
       >
         {avatar ? (
-          <img src={avatar} alt="" className="w-8 h-8 rounded-sm object-cover" loading="lazy"
+          <img src={avatar} alt={`${name}'s avatar`} className="w-8 h-8 rounded-sm object-cover" loading="lazy"
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
         ) : (
           <div className="w-8 h-8 rounded-sm bg-bg-raised border border-border flex items-center justify-center text-text-dim text-xs">

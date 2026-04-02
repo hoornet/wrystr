@@ -43,7 +43,7 @@ function AuthorRow({ pubkey, publishedAt, readingTime }: { pubkey: string; publi
     <div className="flex items-center gap-3 mb-6">
       <button className="shrink-0" onClick={() => openProfile(pubkey)}>
         {profile?.picture ? (
-          <img src={profile.picture} alt="" className="w-9 h-9 rounded-sm object-cover hover:opacity-80 transition-opacity"
+          <img src={profile.picture} alt={`${name}'s avatar`} className="w-9 h-9 rounded-sm object-cover hover:opacity-80 transition-opacity"
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
         ) : (
           <div className="w-9 h-9 rounded-sm bg-bg-raised border border-border flex items-center justify-center text-text-dim text-sm">
@@ -361,7 +361,7 @@ export function ArticleView() {
                 <div className="mb-6 -mx-2">
                   <img
                     src={image}
-                    alt=""
+                    alt={`Cover image for ${title || "article"}`}
                     className="w-full aspect-video object-cover rounded-sm"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                   />

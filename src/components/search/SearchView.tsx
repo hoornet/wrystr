@@ -52,21 +52,21 @@ function UserRow({ user }: { user: ParsedUser }) {
 
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border hover:bg-bg-hover transition-colors">
-      <div className="shrink-0 cursor-pointer" onClick={() => navToProfile(user.pubkey)}>
+      <button className="shrink-0 cursor-pointer" aria-label={`View profile of ${displayName}`} onClick={() => navToProfile(user.pubkey)}>
         {user.picture ? (
-          <img src={user.picture} alt="" className="w-9 h-9 rounded-sm object-cover bg-bg-raised"
+          <img src={user.picture} alt={`${displayName}'s avatar`} className="w-9 h-9 rounded-sm object-cover bg-bg-raised"
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
         ) : (
           <div className="w-9 h-9 rounded-sm bg-bg-raised border border-border flex items-center justify-center text-text-dim text-xs">
             {displayName.charAt(0).toUpperCase()}
           </div>
         )}
-      </div>
-      <div className="min-w-0 flex-1 cursor-pointer" onClick={() => navToProfile(user.pubkey)}>
+      </button>
+      <button className="min-w-0 flex-1 cursor-pointer text-left" onClick={() => navToProfile(user.pubkey)}>
         <div className="text-text text-[13px] font-medium truncate">{displayName}</div>
         {user.nip05 && <div className="text-text-dim text-[10px] truncate">{user.nip05}</div>}
         {user.about && <div className="text-text-dim text-[11px] truncate mt-0.5">{user.about}</div>}
-      </div>
+      </button>
       {loggedIn && !isOwn && (
         <button
           onClick={handleFollowToggle}
@@ -279,6 +279,7 @@ export function SearchView() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="search… try by:name, #tag, has:image, is:article, since:2026-01-01"
+            aria-label="Search Nostr"
             autoFocus
             className="flex-1 bg-transparent text-text text-[13px] placeholder:text-text-dim focus:outline-none"
           />
@@ -413,17 +414,17 @@ export function SearchView() {
             )}
             {visibleSuggestions.map((s) => s.profile && (
               <div key={s.pubkey} className="flex items-center gap-3 px-4 py-2.5 border-b border-border hover:bg-bg-hover transition-colors group/suggestion">
-                <div className="shrink-0 cursor-pointer" onClick={() => useUIStore.getState().openProfile(s.pubkey)}>
+                <button className="shrink-0 cursor-pointer" aria-label={`View profile of ${s.profile.displayName || s.profile.name || "user"}`} onClick={() => useUIStore.getState().openProfile(s.pubkey)}>
                   {s.profile.picture ? (
-                    <img src={s.profile.picture} alt="" className="w-9 h-9 rounded-sm object-cover bg-bg-raised"
+                    <img src={s.profile.picture} alt={`${s.profile.displayName || s.profile.name || "User"}'s avatar`} className="w-9 h-9 rounded-sm object-cover bg-bg-raised"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                   ) : (
                     <div className="w-9 h-9 rounded-sm bg-bg-raised border border-border flex items-center justify-center text-text-dim text-xs">
                       {(s.profile.displayName || s.profile.name || "?").charAt(0).toUpperCase()}
                     </div>
                   )}
-                </div>
-                <div className="min-w-0 flex-1 cursor-pointer" onClick={() => useUIStore.getState().openProfile(s.pubkey)}>
+                </button>
+                <button className="min-w-0 flex-1 cursor-pointer text-left" onClick={() => useUIStore.getState().openProfile(s.pubkey)}>
                   <div className="text-text text-[13px] font-medium truncate">
                     {s.profile.displayName || s.profile.name || shortenPubkey(s.pubkey)}
                   </div>
@@ -434,7 +435,7 @@ export function SearchView() {
                   {s.profile.about && (
                     <div className="text-text-dim text-[11px] truncate mt-0.5">{s.profile.about}</div>
                   )}
-                </div>
+                </button>
                 <SuggestionFollowButton pubkey={s.pubkey} />
                 <button
                   onClick={() => dismiss(s.pubkey)}

@@ -56,7 +56,7 @@ function ConvRow({
       }`}
     >
       {profile?.picture ? (
-        <img src={profile.picture} alt="" className="w-8 h-8 rounded-sm object-cover shrink-0"
+        <img src={profile.picture} alt={`${name}'s avatar`} className="w-8 h-8 rounded-sm object-cover shrink-0"
           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
       ) : (
         <div className="w-8 h-8 rounded-sm bg-bg-raised border border-border flex items-center justify-center text-text-dim text-xs shrink-0">
@@ -177,7 +177,7 @@ function ThreadPanel({
       {/* Header */}
       <div className="border-b border-border px-4 py-2.5 flex items-center gap-3 shrink-0">
         {profile?.picture && (
-          <img src={profile.picture} alt="" className="w-7 h-7 rounded-sm object-cover" />
+          <img src={profile.picture} alt={`${name}'s avatar`} className="w-7 h-7 rounded-sm object-cover" />
         )}
         <button
           onClick={() => openProfile(partnerPubkey)}

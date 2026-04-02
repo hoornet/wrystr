@@ -72,7 +72,7 @@ export function EpisodeList({ show, onBack }: EpisodeListProps) {
         {show.artworkUrl && (
           <img
             src={show.artworkUrl}
-            alt=""
+            alt={`${show.title || "Podcast"} artwork`}
             className="w-20 h-20 rounded-sm object-cover shrink-0"
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
           />

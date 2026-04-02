@@ -236,7 +236,7 @@ export function PodcastPlayerBar() {
         {artwork && (
           <img
             src={artwork}
-            alt=""
+            alt="Now playing artwork"
             className="w-10 h-10 rounded-sm object-cover shrink-0 bg-bg-raised"
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
           />

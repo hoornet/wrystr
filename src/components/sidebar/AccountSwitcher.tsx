@@ -10,7 +10,7 @@ function Avatar({ account, size = "w-6 h-6", textSize = "text-[10px]" }: { accou
     return (
       <img
         src={account.picture}
-        alt=""
+        alt={`${account.name || "Account"} avatar`}
         className={`${size} rounded-sm object-cover shrink-0`}
         onError={(e) => {
           (e.target as HTMLImageElement).style.display = "none";

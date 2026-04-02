@@ -34,7 +34,7 @@ function FollowRow({
         {avatar ? (
           <img
             src={avatar}
-            alt=""
+            alt={`${name}'s avatar`}
             className="w-9 h-9 rounded-sm object-cover bg-bg-raised hover:opacity-80 transition-opacity"
             loading="lazy"
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}

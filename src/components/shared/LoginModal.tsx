@@ -110,7 +110,11 @@ export function LoginModal({ onClose }: LoginModalProps) {
   return (
     <div
       className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="login-modal-title"
       onClick={onClose}
+      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
     >
       <div
         className="bg-bg-raised border border-border w-full max-w-md mx-4"
@@ -118,9 +122,10 @@ export function LoginModal({ onClose }: LoginModalProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="text-text text-sm font-medium">Login</h2>
+          <h2 id="login-modal-title" className="text-text text-sm font-medium">Login</h2>
           <button
             onClick={onClose}
+            aria-label="Close login dialog"
             className="text-text-dim hover:text-text text-lg leading-none"
           >
             ×

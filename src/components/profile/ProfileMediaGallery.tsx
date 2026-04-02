@@ -70,7 +70,7 @@ export function ProfileMediaGallery({ notes, loading }: { notes: NDKEvent[]; loa
               >
                 <img
                   src={item.url}
-                  alt=""
+                  alt="Media content"
                   className="w-full h-full object-cover"
                   loading="lazy"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -88,7 +88,7 @@ export function ProfileMediaGallery({ notes, loading }: { notes: NDKEvent[]; loa
                 {item.thumbnailId ? (
                   <img
                     src={`https://img.youtube.com/vi/${item.thumbnailId}/mqdefault.jpg`}
-                    alt=""
+                    alt="Video thumbnail"
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />

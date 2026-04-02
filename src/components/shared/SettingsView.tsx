@@ -27,7 +27,7 @@ function MutedRow({ pubkey, onUnmute }: { pubkey: string; onUnmute: () => void }
   return (
     <div className="flex items-center gap-3 px-3 py-2 border border-border text-[12px] group">
       {profile?.picture && (
-        <img src={profile.picture} alt="" className="w-5 h-5 rounded-sm object-cover shrink-0" />
+        <img src={profile.picture} alt={`${name}'s avatar`} className="w-5 h-5 rounded-sm object-cover shrink-0" />
       )}
       <span className="text-text truncate flex-1">{name}</span>
       <button

@@ -28,11 +28,15 @@ export function ImageLightbox({ images, index, onClose, onNavigate }: ImageLight
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Image viewer"
       onClick={onClose}
     >
       {/* Close button */}
       <button
         onClick={onClose}
+        aria-label="Close image viewer"
         className="absolute top-4 right-4 text-white/70 hover:text-white text-[20px] w-8 h-8 flex items-center justify-center transition-colors z-10"
       >
         ✕
@@ -49,6 +53,7 @@ export function ImageLightbox({ images, index, onClose, onNavigate }: ImageLight
       {hasPrev && (
         <button
           onClick={(e) => { e.stopPropagation(); onNavigate(index - 1); }}
+          aria-label="Previous image"
           className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white text-[28px] w-10 h-10 flex items-center justify-center transition-colors z-10"
         >
           ‹
@@ -58,7 +63,7 @@ export function ImageLightbox({ images, index, onClose, onNavigate }: ImageLight
       {/* Image */}
       <img
         src={images[index]}
-        alt=""
+        alt={`Image ${index + 1} of ${images.length}`}
         className="max-w-[90vw] max-h-[90vh] object-contain select-none"
         onClick={(e) => e.stopPropagation()}
         draggable={false}
@@ -68,6 +73,7 @@ export function ImageLightbox({ images, index, onClose, onNavigate }: ImageLight
       {hasNext && (
         <button
           onClick={(e) => { e.stopPropagation(); onNavigate(index + 1); }}
+          aria-label="Next image"
           className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white text-[28px] w-10 h-10 flex items-center justify-center transition-colors z-10"
         >
           ›

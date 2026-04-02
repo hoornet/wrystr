@@ -23,7 +23,7 @@ function ImageGrid({ images, onImageClick }: { images: string[]; onImageClick: (
       <div className="mt-2">
         <img
           src={images[0]}
-          alt=""
+          alt="Posted image"
           loading="lazy"
           className="max-w-full max-h-80 rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in"
           onClick={(e) => { e.stopPropagation(); onImageClick(0); }}
@@ -40,7 +40,7 @@ function ImageGrid({ images, onImageClick }: { images: string[]; onImageClick: (
           <img
             key={idx}
             src={src}
-            alt=""
+            alt="Posted image"
             loading="lazy"
             className="w-full aspect-[4/3] rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in"
             onClick={(e) => { e.stopPropagation(); onImageClick(idx); }}
@@ -56,7 +56,7 @@ function ImageGrid({ images, onImageClick }: { images: string[]; onImageClick: (
       <div className="mt-2 grid grid-cols-2 grid-rows-2 gap-1" style={{ gridTemplateRows: "1fr 1fr" }}>
         <img
           src={visible[0]}
-          alt=""
+          alt="Posted image"
           loading="lazy"
           className="w-full h-full rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in row-span-2"
           style={{ aspectRatio: "3/4" }}
@@ -65,7 +65,7 @@ function ImageGrid({ images, onImageClick }: { images: string[]; onImageClick: (
         />
         <img
           src={visible[1]}
-          alt=""
+          alt="Posted image"
           loading="lazy"
           className="w-full aspect-[4/3] rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in"
           onClick={(e) => { e.stopPropagation(); onImageClick(1); }}
@@ -73,7 +73,7 @@ function ImageGrid({ images, onImageClick }: { images: string[]; onImageClick: (
         />
         <img
           src={visible[2]}
-          alt=""
+          alt="Posted image"
           loading="lazy"
           className="w-full aspect-[4/3] rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in"
           onClick={(e) => { e.stopPropagation(); onImageClick(2); }}
@@ -90,7 +90,7 @@ function ImageGrid({ images, onImageClick }: { images: string[]; onImageClick: (
         <div key={idx} className="relative">
           <img
             src={src}
-            alt=""
+            alt="Posted image"
             loading="lazy"
             className="w-full aspect-[4/3] rounded-sm object-cover bg-bg-raised border border-border cursor-zoom-in"
             onClick={(e) => { e.stopPropagation(); onImageClick(idx); }}
@@ -133,7 +133,7 @@ function QuotePreview({ eventId }: { eventId: string }) {
     >
       <div className="flex items-center gap-2 mb-1">
         {profile?.picture && (
-          <img src={profile.picture} alt="" className="w-4 h-4 rounded-sm object-cover shrink-0"
+          <img src={profile.picture} alt={`${name}'s avatar`} className="w-4 h-4 rounded-sm object-cover shrink-0"
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
         )}
         <span className="text-text-muted text-[11px] font-medium truncate">{name}</span>

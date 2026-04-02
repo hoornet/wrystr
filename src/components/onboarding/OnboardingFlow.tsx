@@ -248,6 +248,7 @@ function LoginStep({ onBack, onComplete }: { onBack: () => void; onComplete: () 
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={mode === "nsec" ? "nsec1…" : mode === "npub" ? "npub1…" : "bunker://…"}
+        aria-label={mode === "nsec" ? "Secret key" : mode === "npub" ? "Public key" : "Bunker URI"}
         autoFocus
         className="w-full bg-bg border border-border px-3 py-2 text-text text-[12px] font-mono focus:outline-none focus:border-accent/50 placeholder:text-text-dim mb-2"
         style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}

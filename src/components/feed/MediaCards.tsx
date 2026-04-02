@@ -83,7 +83,7 @@ export function YouTubeCard({ seg }: { seg: ContentSegment }) {
     >
       <img
         src={`https://img.youtube.com/vi/${seg.mediaId}/hqdefault.jpg`}
-        alt=""
+        alt="Video thumbnail"
         className="w-28 h-16 rounded-sm object-cover shrink-0"
         loading="lazy"
       />

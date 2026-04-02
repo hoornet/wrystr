@@ -18,7 +18,7 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
 
   return (
     <>
-      <div className="fixed inset-0 z-[9]" onClick={onClose} />
+      <div className="fixed inset-0 z-[9]" role="presentation" onClick={onClose} />
       <div className="absolute bottom-7 right-0 bg-bg-raised border border-border shadow-lg z-10 w-64">
         {/* Group tabs */}
         <div className="flex border-b border-border">

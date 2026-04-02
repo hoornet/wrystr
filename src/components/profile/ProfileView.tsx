@@ -28,7 +28,7 @@ function TopFollowerAvatar({ pubkey }: { pubkey: string }) {
       {profile?.picture ? (
         <img
           src={profile.picture}
-          alt=""
+          alt={`${name}'s avatar`}
           className="w-5 h-5 rounded-sm object-cover bg-bg-raised"
           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
         />
@@ -218,7 +218,7 @@ export function ProfileView() {
                 )}
                 <img
                   src={profile.banner}
-                  alt=""
+                  alt={`${name}'s banner`}
                   className="w-full h-full object-cover object-[center_30%] cursor-pointer hover:opacity-90 transition-opacity"
                   onClick={() => setBannerLightbox(true)}
                   onLoad={() => setBannerLoaded(true)}
@@ -233,7 +233,7 @@ export function ProfileView() {
                 {avatar ? (
                   <img
                     src={avatar}
-                    alt=""
+                    alt={`${name}'s avatar`}
                     style={{ width: 64, height: 64 }}
                     className="rounded-sm object-cover bg-bg-raised"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}

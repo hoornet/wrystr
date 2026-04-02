@@ -68,7 +68,7 @@ export function FountainCard({ seg }: { seg: ContentSegment }) {
       {episode.artworkUrl ? (
         <img
           src={episode.artworkUrl}
-          alt=""
+          alt={`${episode.title || "Episode"} artwork`}
           className="w-12 h-12 rounded-sm object-cover shrink-0"
           loading="lazy"
           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}

@@ -175,7 +175,7 @@ export function InlineReplyBox({ event, name, rootEvent }: InlineReplyBoxProps) 
               ) : (
                 <img
                   src={url}
-                  alt=""
+                  alt="Attachment preview"
                   className="h-12 w-auto rounded-sm border border-border object-cover"
                   onError={(e) => { (e.target as HTMLImageElement).className = "h-12 w-16 rounded-sm border border-border bg-bg-raised"; }}
                 />

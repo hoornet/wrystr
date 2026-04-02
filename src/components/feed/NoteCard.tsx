@@ -67,11 +67,11 @@ export function NoteCard({ event, focused, onReplyInThread }: NoteCardProps) {
     >
       <div className="flex gap-3">
         {/* Avatar */}
-        <div className="shrink-0 cursor-pointer" onClick={() => openProfile(event.pubkey)}>
+        <button className="shrink-0 cursor-pointer" aria-label={`View profile of ${name}`} onClick={() => openProfile(event.pubkey)}>
           {avatar ? (
             <img
               src={avatar}
-              alt=""
+              alt={`${name}'s avatar`}
               className="w-9 h-9 rounded-sm object-cover bg-bg-raised hover:opacity-80 transition-opacity"
               loading="lazy"
               onError={(e) => {
@@ -83,7 +83,7 @@ export function NoteCard({ event, focused, onReplyInThread }: NoteCardProps) {
               {name.charAt(0).toUpperCase()}
             </div>
           )}
-        </div>
+        </button>
 
         {/* Content */}
         <div className="min-w-0 flex-1">
@@ -103,14 +103,16 @@ export function NoteCard({ event, focused, onReplyInThread }: NoteCardProps) {
               <div className="relative ml-auto">
                 <button
                   onClick={() => setMenuOpen((v) => !v)}
+                  aria-label="More actions"
+                  aria-expanded={menuOpen}
                   className="text-text-dim hover:text-text text-[14px] px-1 leading-none opacity-0 group-hover/card:opacity-100 transition-opacity"
                 >
                   ⋯
                 </button>
                 {menuOpen && (
                   <>
-                    <div className="fixed inset-0 z-[9]" onClick={() => setMenuOpen(false)} />
-                    <div className="absolute right-0 top-5 bg-bg-raised border border-border shadow-lg z-10 w-32">
+                    <div className="fixed inset-0 z-[9]" role="presentation" onClick={() => setMenuOpen(false)} />
+                    <div role="menu" className="absolute right-0 top-5 bg-bg-raised border border-border shadow-lg z-10 w-32">
                       <button
                         onClick={() => { setMenuOpen(false); follows.includes(event.pubkey) ? unfollow(event.pubkey) : follow(event.pubkey); }}
                         className="w-full text-left px-3 py-2 text-[11px] text-text-muted hover:text-accent hover:bg-bg-hover transition-colors"

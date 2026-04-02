@@ -21,7 +21,7 @@ function AncestorCard({ event }: { event: NDKEvent }) {
     >
       <div className="shrink-0 mt-0.5">
         {avatar ? (
-          <img src={avatar} alt="" className="w-6 h-6 rounded-sm object-cover bg-bg-raised" loading="lazy" />
+          <img src={avatar} alt={`${name}'s avatar`} className="w-6 h-6 rounded-sm object-cover bg-bg-raised" loading="lazy" />
         ) : (
           <div className="w-6 h-6 rounded-sm bg-bg-raised border border-border flex items-center justify-center text-text-dim text-[9px]">
             {name.charAt(0).toUpperCase()}

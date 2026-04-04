@@ -132,7 +132,9 @@ export function EpisodeList({ show, onBack }: EpisodeListProps) {
                       <span className="text-[10px] text-accent">resumed</span>
                     )}
                     {ep.value && ep.value.length > 0 && (
-                      <span className="text-[10px] text-amber-500">V4V</span>
+                      <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-sm font-medium">
+                        ⚡ V4V
+                      </span>
                     )}
                   </div>
                 </div>

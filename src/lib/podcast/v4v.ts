@@ -1,6 +1,6 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import type { PodcastEpisode, V4VRecipient } from "../../types/podcast";
-import { payInvoiceViaNWC } from "../lightning/nwc";
+import { payInvoiceViaNWC, payKeysendViaNWC } from "../lightning/nwc";
 
 const LNURL_CACHE: Record<string, string> = {};
 
@@ -39,6 +39,38 @@ function getRecipients(episode: PodcastEpisode): V4VRecipient[] {
   return [];
 }
 
+async function payRecipient(
+  recipient: V4VRecipient,
+  amountMsats: number,
+  nwcUri: string,
+): Promise<boolean> {
+  if (!recipient.address) return false;
+
+  const isLnAddress = recipient.address.includes("@");
+  const isNodePubkey = /^[0-9a-f]{66}$/i.test(recipient.address);
+
+  if (isLnAddress) {
+    const invoice = await fetchLnurlPayInvoice(recipient.address, amountMsats);
+    if (!invoice) return false;
+    await payInvoiceViaNWC(nwcUri, invoice);
+    return true;
+  }
+
+  if (isNodePubkey) {
+    const tlvRecords: { type: number; value: string }[] = [];
+    if (recipient.customKey && recipient.customValue) {
+      tlvRecords.push({
+        type: parseInt(recipient.customKey, 10),
+        value: recipient.customValue,
+      });
+    }
+    await payKeysendViaNWC(nwcUri, recipient.address, amountMsats, tlvRecords);
+    return true;
+  }
+
+  return false;
+}
+
 let streamingInterval: number | null = null;
 let accumulatedSats = 0;
 let accumulatedMinutes = 0;
@@ -72,17 +104,13 @@ export function startStreaming(
     accumulatedMinutes = 0;
 
     for (const recipient of recipients) {
-      if (!recipient.address || !recipient.address.includes("@")) continue;
-
       const share = totalSplit > 0 ? recipient.split / totalSplit : 1 / recipients.length;
       const recipientSats = Math.max(1, Math.round(satsToSend * share));
       const amountMsats = recipientSats * 1000;
 
       try {
-        const invoice = await fetchLnurlPayInvoice(recipient.address, amountMsats);
-        if (!invoice) continue;
-        await payInvoiceViaNWC(nwcUri, invoice);
-        onPayment(recipientSats);
+        const success = await payRecipient(recipient, amountMsats, nwcUri);
+        if (success) onPayment(recipientSats);
       } catch {
         // Payment failed — silently continue
       }
@@ -113,17 +141,13 @@ export async function boost(
   let paid = 0;
 
   for (const recipient of recipients) {
-    if (!recipient.address || !recipient.address.includes("@")) continue;
-
     const share = totalSplit > 0 ? recipient.split / totalSplit : 1 / recipients.length;
     const recipientSats = Math.max(1, Math.round(totalSats * share));
     const amountMsats = recipientSats * 1000;
 
     try {
-      const invoice = await fetchLnurlPayInvoice(recipient.address, amountMsats);
-      if (!invoice) continue;
-      await payInvoiceViaNWC(nwcUri, invoice);
-      paid += recipientSats;
+      const success = await payRecipient(recipient, amountMsats, nwcUri);
+      if (success) paid += recipientSats;
     } catch {
       // continue
     }

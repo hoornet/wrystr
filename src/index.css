@@ -99,6 +99,17 @@ body {
   animation: fade-in 150ms ease-out;
 }
 
+/* V4V nudge — slides in, holds, then fades out */
+@keyframes nudge-in {
+  0% { opacity: 0; transform: translateY(4px); }
+  10% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.animate-fade-in {
+  animation: nudge-in 5s ease-out forwards;
+}
+
 /* Toast slide-in */
 @keyframes toast-in {
   from { opacity: 0; transform: translateX(16px); }

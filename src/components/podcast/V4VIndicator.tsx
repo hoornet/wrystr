@@ -1,20 +1,44 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { usePodcastStore } from "../../stores/podcast";
 import { startStreaming, stopStreaming, boost } from "../../lib/podcast/v4v";
 
 const RATE_OPTIONS = [5, 10, 21, 50, 100];
 const NWC_KEY = "wrystr_nwc_uri";
 
+// Track which episodes have shown the nudge this session (not persisted)
+const nudgedGuids = new Set<string>();
+
 export function V4VIndicator() {
   const [open, setOpen] = useState(false);
   const [boostAmount, setBoostAmount] = useState("100");
   const [boosting, setBoosting] = useState(false);
+  const [showNudge, setShowNudge] = useState(false);
+  const nudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const episode = usePodcastStore((s) => s.currentEpisode);
   const v4vSatsPerMinute = usePodcastStore((s) => s.v4vSatsPerMinute);
   const v4vStreaming = usePodcastStore((s) => s.v4vStreaming);
   const v4vTotalStreamed = usePodcastStore((s) => s.v4vTotalStreamed);
+  const playbackState = usePodcastStore((s) => s.playbackState);
   const { setV4VEnabled, setV4VSatsPerMinute, setV4VStreaming, addStreamedSats } = usePodcastStore.getState();
+
+  // Show nudge when a V4V episode starts playing and streaming is off
+  useEffect(() => {
+    if (
+      playbackState === "playing" &&
+      episode?.value &&
+      episode.value.length > 0 &&
+      !v4vStreaming &&
+      !nudgedGuids.has(episode.guid)
+    ) {
+      nudgedGuids.add(episode.guid);
+      setShowNudge(true);
+      nudgeTimer.current = setTimeout(() => setShowNudge(false), 5000);
+    }
+    return () => {
+      if (nudgeTimer.current) clearTimeout(nudgeTimer.current);
+    };
+  }, [playbackState, episode?.guid, v4vStreaming]);
 
   const nwcUri = localStorage.getItem(NWC_KEY) ?? "";
   const hasWallet = !!nwcUri;
@@ -57,16 +81,29 @@ export function V4VIndicator() {
   return (
     <div className="relative shrink-0">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => { setOpen(!open); setShowNudge(false); }}
         className={`text-[11px] px-1.5 py-0.5 rounded-sm transition-colors ${
           v4vStreaming
             ? "text-amber-400 bg-amber-500/10 animate-pulse"
-            : "text-text-dim hover:text-text"
+            : hasRecipients && !v4vStreaming
+              ? "text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+              : "text-text-dim hover:text-text"
         }`}
         title="Value 4 Value"
       >
-        {v4vStreaming ? `${v4vTotalStreamed} sats` : "V4V"}
+        {v4vStreaming ? `⚡ ${v4vTotalStreamed} sats` : hasRecipients ? "⚡ V4V" : "V4V"}
       </button>
+
+      {/* Brief nudge when V4V episode starts — once per episode per session */}
+      {showNudge && (
+        <div
+          className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-amber-500/15 border border-amber-500/30 rounded-sm text-[10px] text-amber-300 whitespace-nowrap z-50 animate-fade-in"
+          onClick={() => { setShowNudge(false); setOpen(true); }}
+          style={{ cursor: "pointer" }}
+        >
+          ⚡ This episode supports V4V — stream sats to the creators
+        </div>
+      )}
 
       {open && (
         <div className="absolute bottom-full right-0 mb-2 w-56 bg-bg border border-border rounded-sm shadow-lg p-3 z-50">
@@ -121,6 +158,23 @@ export function V4VIndicator() {
                 ))}
                 <span className="text-[9px] text-text-dim">/min</span>
               </div>
+
+              {/* Recipients */}
+              {episode.value && episode.value.length > 0 && (
+                <div className="mb-2 border-t border-border pt-2">
+                  <div className="text-[9px] text-text-dim mb-1">Sats go to:</div>
+                  {episode.value.map((r, i) => {
+                    const totalSplit = episode.value!.reduce((s, v) => s + v.split, 0);
+                    const pct = totalSplit > 0 ? Math.round((r.split / totalSplit) * 100) : 0;
+                    return (
+                      <div key={i} className="flex items-center justify-between text-[9px]">
+                        <span className="text-text-muted truncate">{r.name || r.address?.slice(0, 12) + "…"}</span>
+                        <span className="text-text-dim shrink-0 ml-1">{pct}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Boost */}
               <div className="flex items-center gap-1 border-t border-border pt-2">

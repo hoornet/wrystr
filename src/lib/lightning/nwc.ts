@@ -29,6 +29,85 @@ export function isValidNwcUri(uri: string): boolean {
   }
 }
 
+export async function payKeysendViaNWC(
+  nwcUri: string,
+  pubkey: string,
+  amountMsats: number,
+  tlvRecords?: { type: number; value: string }[],
+): Promise<string> {
+  const { walletPubkey, relayUrl, secret } = parseNwcUri(nwcUri);
+
+  const ndk = new NDK({ explicitRelayUrls: [relayUrl], enableOutboxModel: false });
+  const signer = new NDKPrivateKeySigner(secret);
+  ndk.signer = signer;
+  await ndk.connect();
+
+  await new Promise<void>((resolve) => {
+    const check = () => {
+      const relays = Array.from(ndk.pool?.relays?.values() ?? []);
+      if (relays.some((r) => r.connected)) resolve();
+      else setTimeout(check, 200);
+    };
+    setTimeout(() => resolve(), 8000);
+    check();
+  });
+
+  const walletUser = ndk.getUser({ pubkey: walletPubkey });
+
+  const params: Record<string, unknown> = {
+    pubkey,
+    amount: amountMsats,
+  };
+  if (tlvRecords && tlvRecords.length > 0) {
+    params.tlv_records = tlvRecords.map((r) => ({
+      type: r.type,
+      value: r.value,
+    }));
+  }
+
+  const requestContent = JSON.stringify({ method: "pay_keysend", params });
+  const encrypted = await signer.encrypt(walletUser, requestContent, "nip04");
+
+  const requestEvent = new NDKEvent(ndk);
+  requestEvent.kind = NDKKind.NostrWalletConnectReq;
+  requestEvent.content = encrypted;
+  requestEvent.tags = [["p", walletPubkey]];
+  await requestEvent.sign();
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      sub.stop();
+      reject(new Error("NWC keysend timed out (30s)"));
+    }, 30000);
+
+    const filter: NDKFilter = {
+      kinds: [NDKKind.NostrWalletConnectRes],
+      authors: [walletPubkey],
+      "#e": [requestEvent.id!],
+    };
+
+    const sub = ndk.subscribe(filter, { closeOnEose: false });
+
+    sub.on("event", async (event: NDKEvent) => {
+      clearTimeout(timeout);
+      sub.stop();
+      try {
+        const decrypted = await signer.decrypt(walletUser, event.content, "nip04");
+        const response = JSON.parse(decrypted);
+        if (response.error) {
+          reject(new Error(response.error.message || "NWC keysend failed"));
+        } else {
+          resolve(response.result?.preimage ?? "");
+        }
+      } catch (err) {
+        reject(err);
+      }
+    });
+
+    requestEvent.publish();
+  });
+}
+
 export async function payInvoiceViaNWC(nwcUri: string, bolt11: string): Promise<string> {
   const { walletPubkey, relayUrl, secret } = parseNwcUri(nwcUri);
 

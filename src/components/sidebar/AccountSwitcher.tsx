@@ -140,21 +140,13 @@ export function AccountSwitcher() {
 
         {/* Active account row */}
         <div className="px-3 py-2">
-          {!loggedIn && (
-            <button
-              onClick={() => setShowAddLogin(true)}
-              className="w-full mb-1.5 px-2 py-1 text-[10px] border border-accent/40 text-accent hover:bg-accent/10 transition-colors"
-            >
-              re-login to sign
-            </button>
-          )}
           <div className="flex items-center gap-2">
             <div
               className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => openProfile(pubkey)}
             >
-              <Avatar account={current} size="w-10 h-10" textSize="text-[14px]" />
-              <span className={`text-[14px] font-medium truncate flex-1 ${loggedIn ? "text-text" : "text-text-muted"}`}>{displayName(current)}</span>
+              <Avatar account={current} size={loggedIn ? "w-11 h-11" : "w-8 h-8"} textSize={loggedIn ? "text-[16px]" : "text-[12px]"} />
+              <span className={`font-medium truncate flex-1 ${loggedIn ? "text-[15px] text-text" : "text-[12px] text-text-muted"}`}>{displayName(current)}</span>
             </div>
             <button
               onClick={() => setOpen((v) => !v)}

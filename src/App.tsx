@@ -28,6 +28,7 @@ const V4VView = lazy(() => import("./components/v4v/V4VView").then(m => ({ defau
 const DebugPanel = lazy(() => import("./components/shared/DebugPanel").then(m => ({ default: m.DebugPanel })));
 const HelpModal = lazy(() => import("./components/shared/HelpModal").then(m => ({ default: m.HelpModal })));
 import { useUIStore } from "./stores/ui";
+import { useUserStore } from "./stores/user";
 import { getTheme, applyTheme } from "./lib/themes";
 import { useUpdater } from "./hooks/useUpdater";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -51,6 +52,16 @@ function UpdateBanner() {
         </button>
         <button onClick={dismiss} className="text-text-dim hover:text-text transition-colors">×</button>
       </div>
+    </div>
+  );
+}
+
+function ReadOnlyBanner() {
+  const loggedIn = useUserStore((s) => s.loggedIn);
+  if (loggedIn) return null;
+  return (
+    <div className="flex items-center justify-center gap-2 px-4 py-1.5 bg-warning/10 border-b border-warning/30 text-[11px] shrink-0">
+      <span className="text-warning">Read-only mode — sign in to post, react, and zap</span>
     </div>
   );
 }
@@ -108,6 +119,7 @@ function App() {
   return (
     <div className="flex flex-col h-screen w-screen bg-bg">
       <UpdateBanner />
+      <ReadOnlyBanner />
       <div className="flex flex-1 min-h-0">
       <Sidebar />
       <main className="flex-1 min-w-0 h-full overflow-hidden" style={{ zoom: `${fontSize / 14}` }}>

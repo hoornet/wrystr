@@ -126,6 +126,7 @@ sudo dnf install gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-liba
 - **Media pause on navigation** — video and audio in feed automatically pause when you navigate to another view
 - **Accessibility** — WCAG AA contrast compliance, ARIA labels, reduced motion support
 - **Podcast player stability** — 15s loading timeout with user-friendly error messages; automatic V4V stop on audio failure
+- **Read-only mode banner** — persistent top-of-app warning when not signed in, so you always know you're in read-only mode
 
 ## Supported NIPs
 

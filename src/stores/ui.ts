@@ -127,3 +127,16 @@ export const useUIStore = create<UIState>((set, _get) => ({
   toggleHelp: () => set((s) => ({ showHelp: !s.showHelp })),
   toggleDebugPanel: () => set((s) => ({ showDebugPanel: !s.showDebugPanel })),
 }));
+
+// Pause all in-page media (video/audio) when navigating between views
+// This prevents background playback when opening thread from feed, etc.
+// Note: the podcast player <audio> has a ref and is managed separately.
+let prevView = useUIStore.getState().currentView;
+useUIStore.subscribe((s) => {
+  if (s.currentView !== prevView) {
+    prevView = s.currentView;
+    document.querySelectorAll<HTMLMediaElement>("main video, main audio").forEach((el) => {
+      if (!el.paused) el.pause();
+    });
+  }
+});

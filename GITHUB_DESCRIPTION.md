@@ -2,7 +2,7 @@
 
 **Short description (used in the repo header — keep under 350 chars):**
 
-> Cross-platform Nostr desktop client for Mac, Windows & Linux. Built with Tauri + React + NDK. Deep Lightning integration via NWC (NIP-47), full zap support, multi-relay management, and a UI that actually feels native. The Nostr client the ecosystem deserves.
+> Cross-platform Nostr desktop client for Mac, Windows & Linux. Built with Tauri + React + NDK. Podcast player with Value 4 Value streaming, Lightning integration via NWC (NIP-47), long-form articles, multi-relay management, and a UI that feels native.
 
 ---
 

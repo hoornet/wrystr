@@ -59,14 +59,15 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 
 ---
 
-## Up next — Polish & Expansion
+## Up next
 
-- **UI makeover** — visual polish pass on buttons, spacing, hover states, transitions; more native feel
-- **Encrypted group chat** — private group conversations via NIP-29 (relay-based groups) + NIP-44 (encryption); research NIP-104 (gift-wrapped E2E) for small private groups
-- **NIP-72 moderated communities** — Reddit-style public communities with moderator approval flow (kind 34550 definition, kind 1111 posts, kind 4550 approvals)
-- **Nostr NIP research sprint** — comprehensive review of all NIPs for new features to implement
-- **Remaining Phase 4** — custom feeds, note stats, zap splits
-- Web of Trust scoring
+- **V4V section** — dedicated sidebar view with Dashboard (live budget bars), Settings (auto-enable, caps, rate), and History (streaming log with recipient breakdowns)
+- **Custom feeds / lists** (NIP-51)
+- **NIP-96 file storage** integration
+- **Article editor improvements** — image insertion UX, possibly WYSIWYG
+- **Encrypted group chat** — NIP-29 (relay-based groups) + NIP-44 (encryption); NIP-104 (gift-wrapped E2E) for small private groups
+- **NIP-72 moderated communities** — Reddit-style public communities
+- **Code signing** — Windows EV cert + macOS notarization
 
 ---
 
@@ -95,10 +96,11 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 - ✓ Mute filtering in trees
 - Remaining: "Threads I'm in" view, live reply subscriptions, thread caching in SQLite
 
-### Web of Trust (WOT)
-- Social graph distance for trust scoring
-- Could power: feed ranking, spam filtering, people search, follow suggestions
-- Needs dedicated design session
+### Web of Trust — ✓ SHIPPED (v0.11.0)
+- ✓ Vertex DVM integration (kind 5312→6312)
+- ✓ "Followed by people you trust" on profiles with clickable follower avatars
+- ✓ Personalized trust scoring
+- Remaining: WoT-powered feed ranking, spam filtering
 
 ### Long-form features (NIP-23 depth) — mostly shipped (v0.6.0 + v0.7.0)
 - ✓ Discovery: dedicated article feed with Latest/Following tabs
@@ -127,6 +129,36 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 ---
 
 ## What's already shipped
+
+### v0.12.x — Podcasts & Value 4 Value (2026-04-05)
+- **Podcast player** — search, subscribe, play podcasts directly in Vega
+- **V4V streaming** — stream sats to podcast creators via Lightning (keysend + LNURL-pay); automatic recipient splits (hosts, producers, apps)
+- **Own relay** — `wss://relay.veganostr.com` (strfry, Helsinki); wired as default for all users
+- **Media feed fixed** — 24h window replaces 2h, actually returns results now
+- **Trending feed resilience** — retry on slow startup, preserves existing notes
+- **Read-only banner** — clear visual indicator when not signed in
+- **Accessibility** — proper contrast across all themes, screen reader labels, reduced motion support
+- **Media pause on navigate** — videos and audio stop when switching views
+
+### v0.11.0 — DB-First Caching & Performance
+- **SQLite-backed notifications** — instant load from local cache; relay diff merged in background
+- **SQLite-backed followers** — instant follower count from DB; relay results merged in background
+- **SQLite-backed bookmarks** — bookmarked notes load instantly; articles auto-classified to correct tab
+- **SQLite-backed articles** — articles feed loads instantly from DB
+- **Instant own-profile load** — sidebar shows name/picture from DB cache immediately
+- **Retry-on-empty pattern** — followers, profile notes, hashtag feeds retry after 3s if relays return empty
+- **Web of Trust** — Vertex DVM integration with personalized trust scoring on profiles
+- **Embedded Nostr relay** — built-in strfry relay with catch-up sync on startup
+- **Batch bookmark fetch** — `{ ids: [...] }` filter; debounced publishes prevent race conditions
+- **Resilient relay pool** — resetNDK preserves outbox-discovered relay URLs
+- **New follower badges** — recently gained followers marked and sorted to top
+- **naddr clickable links** — `nostr:naddr1…` references resolve to named article links
+
+### v0.10.0 — Rename to Vega
+- **Wrystr → Vega** — renamed across the entire codebase, UI, and packaging
+- **nevent/naddr search** — paste Nostr URIs directly into search
+- **Copy npub** — one-click copy from profile view
+- **Zap reliability** — fixed race conditions in zap flow
 
 ### v0.9.1 — Live Feed & Relay Reliability
 - **Live streaming feed** — persistent relay subscriptions (`closeOnEose: false`) deliver new notes in real-time; no manual refresh needed. Inspired by Wisp's streaming architecture.

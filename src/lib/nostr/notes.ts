@@ -6,7 +6,7 @@ export async function fetchGlobalFeed(limit: number = 50): Promise<NDKEvent[]> {
   const instance = getNDK();
   // Ask for notes from the last 2 hours to ensure freshness
   const since = Math.floor(Date.now() / 1000) - 2 * 3600;
-  const filter: NDKFilter = { kinds: [NDKKind.Text], limit, since };
+  const filter: NDKFilter = { kinds: [NDKKind.Text, 1068 as NDKKind], limit, since };
   const events = await fetchWithTimeout(instance, filter, FEED_TIMEOUT);
   return Array.from(events).sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
 }
@@ -24,21 +24,21 @@ export async function fetchFollowFeed(pubkeys: string[], limit = 80): Promise<ND
   if (pubkeys.length === 0) return [];
   const instance = getNDK();
   const since = Math.floor(Date.now() / 1000) - 24 * 3600; // last 24h for follows
-  const filter: NDKFilter = { kinds: [NDKKind.Text], authors: pubkeys, limit, since };
+  const filter: NDKFilter = { kinds: [NDKKind.Text, 1068 as NDKKind], authors: pubkeys, limit, since };
   const events = await fetchWithTimeout(instance, filter, FEED_TIMEOUT);
   return Array.from(events).sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
 }
 
 export async function fetchUserNotes(pubkey: string, limit = 30): Promise<NDKEvent[]> {
   const instance = getNDK();
-  const filter: NDKFilter = { kinds: [NDKKind.Text], authors: [pubkey], limit };
+  const filter: NDKFilter = { kinds: [NDKKind.Text, 1068 as NDKKind], authors: [pubkey], limit };
   const events = await fetchWithTimeout(instance, filter, FEED_TIMEOUT);
   return Array.from(events).sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
 }
 
 export async function fetchUserNotesNIP65(pubkey: string, limit = 30): Promise<NDKEvent[]> {
   const instance = getNDK();
-  const filter: NDKFilter = { kinds: [NDKKind.Text], authors: [pubkey], limit };
+  const filter: NDKFilter = { kinds: [NDKKind.Text, 1068 as NDKKind], authors: [pubkey], limit };
   try {
     const relayList = await withTimeout(fetchUserRelayList(pubkey), SINGLE_TIMEOUT, { read: [], write: [] });
     if (relayList.write.length > 0) {

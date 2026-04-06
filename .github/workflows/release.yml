@@ -69,12 +69,20 @@ jobs:
 
             > **Windows note:** The installer is not yet code-signed. Windows SmartScreen will show an "Unknown publisher" warning — click "More info → Run anyway" to install.
 
+            ### v0.12.4 — Polls, Custom Relay & UI Polish
+            - **NIP-1068 Polls** — create polls from the compose box, vote on polls in the feed, animated result bars with vote counts and percentages, per-pubkey dedup, expiry support
+            - **Custom Go relay** — switched default relay from strfry to Vega's own Go relay (`wss://relay2.veganostr.com`) with 19 NIPs including NIP-45 COUNT, NIP-50 Search, and NIP-77 Negentropy
+            - **Note action icons** — replaced text labels (reply/repost/share/save) with icons, added tooltips on hover, dot separators for visual clarity
+            - **Sidebar icons** — distinct icons for V4V (📡) vs Zaps (⚡), better icons for podcasts (🎙), follows (👥), bookmarks (★)
+            - **Fix duplicate search results** — people search now deduplicates by pubkey across relays
+            - **Fix thread indentation** — deep threads no longer overflow on narrow/half-screen windows; indent capped at depth 3 with relative spacing
+
             ### v0.12.3 — Fix Direct Messages
             - **Fix DMs not loading** — NIP-17 gift-wrapped messages were silently dropped by NDK's fetchEvents; switched to subscribe-based fetch that correctly receives kind 1059 events
             - **Repo cleanup** — hardened .gitignore, updated AGENTS.md and ROADMAP.md
 
             ### v0.12.2 — Vega Public Relay
-            - **`wss://relay.veganostr.com`** — Vega's own public relay, included by default for all users
+            - **`wss://relay2.veganostr.com`** — Vega's custom Go relay, included by default for all users
             - Existing users get the relay auto-added on upgrade (one-time migration)
 
             ### v0.12.1 — Fixes

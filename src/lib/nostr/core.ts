@@ -39,7 +39,7 @@ export async function fetchWithTimeout(
 export const RELAY_STORAGE_KEY = "wrystr_relays";
 
 export const FALLBACK_RELAYS = [
-  "wss://relay.veganostr.com",
+  "wss://relay2.veganostr.com",
   "wss://relay.damus.io",
   "wss://nos.lol",
   "wss://relay.snort.social",
@@ -47,7 +47,7 @@ export const FALLBACK_RELAYS = [
 
 // Override NDK's default outbox relays (purplepag.es can have DNS issues)
 export const OUTBOX_RELAYS = [
-  "wss://relay.veganostr.com/",
+  "wss://relay2.veganostr.com/",
   "wss://relay.damus.io/",
   "wss://nos.lol/",
   "wss://relay.nostr.band/",
@@ -58,7 +58,7 @@ export function normalizeRelayUrl(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
-const VEGA_RELAY = "wss://relay.veganostr.com";
+const VEGA_RELAY = "wss://relay2.veganostr.com";
 const VEGA_RELAY_MIGRATED_KEY = "wrystr_vega_relay_added";
 
 export function getStoredRelayUrls(): string[] {

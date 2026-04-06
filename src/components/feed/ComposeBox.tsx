@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { publishNote } from "../../lib/nostr";
+import { publishNote, publishPoll } from "../../lib/nostr";
 import { uploadImage, uploadBytes } from "../../lib/upload";
+import { PollCompose } from "../poll/PollCompose";
 import { useAutoResize } from "../../hooks/useAutoResize";
 import { useUserStore } from "../../stores/user";
 import { useFeedStore } from "../../stores/feed";
@@ -21,6 +22,8 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [isPoll, setIsPoll] = useState(false);
+  const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
   const autoResize = useAutoResize(3, 12);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -43,7 +46,8 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
   const charCount = text.length;
   const warnLimit = charCount > 3500;
   const overLimit = charCount > 4000;
-  const canPost = (text.trim().length > 0 || attachments.length > 0) && !publishing && !uploading;
+  const pollValid = !isPoll || pollOptions.filter((o) => o.trim()).length >= 2;
+  const canPost = (text.trim().length > 0 || attachments.length > 0) && !publishing && !uploading && pollValid;
 
   // Insert text at the current cursor position in the textarea
   const insertAtCursor = (str: string) => {
@@ -179,11 +183,16 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
     setPublishing(true);
     setError(null);
     try {
-      // Build final content: text + attachment URLs on separate lines
-      const parts = [text.trim(), ...attachments].filter(Boolean);
-      const content = parts.join("\n");
-
-      const event = await publishNote(content);
+      let event;
+      if (isPoll) {
+        const validOptions = pollOptions.map((o) => o.trim()).filter(Boolean);
+        event = await publishPoll(text.trim(), validOptions);
+      } else {
+        // Build final content: text + attachment URLs on separate lines
+        const parts = [text.trim(), ...attachments].filter(Boolean);
+        const content = parts.join("\n");
+        event = await publishNote(content);
+      }
       // Inject into feed immediately so the user sees their post
       if (onNoteInjected) {
         onNoteInjected(event);
@@ -195,6 +204,8 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
       }
       setText("");
       setAttachments([]);
+      setIsPoll(false);
+      setPollOptions(["", ""]);
       localStorage.removeItem(COMPOSE_DRAFT_KEY);
       textareaRef.current?.focus();
       onPublished?.();
@@ -269,6 +280,11 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
             </div>
           )}
 
+          {/* Poll option inputs */}
+          {isPoll && (
+            <PollCompose options={pollOptions} onChange={setPollOptions} />
+          )}
+
           {error && (
             <p className="text-danger text-[11px] mb-2">{error}</p>
           )}
@@ -303,11 +319,18 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
               </div>
               <button
                 onClick={handleFilePicker}
-                disabled={uploading}
+                disabled={uploading || isPoll}
                 title="Attach image or video"
                 className="text-text-dim hover:text-text text-[16px] transition-colors disabled:opacity-30"
               >
                 +
+              </button>
+              <button
+                onClick={() => setIsPoll((v) => !v)}
+                title={isPoll ? "Cancel poll" : "Create poll"}
+                className={`text-[14px] transition-colors ${isPoll ? "text-accent" : "text-text-dim hover:text-text"}`}
+              >
+                &#9634;&#9634;
               </button>
               <span className="text-text-dim text-[10px]">Ctrl+Enter to post</span>
               <button
@@ -315,7 +338,7 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
                 disabled={!canPost}
                 className="px-3 py-1 text-[11px] bg-accent hover:bg-accent-hover text-accent-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                {publishing ? "posting…" : "post"}
+                {publishing ? "posting…" : isPoll ? "post poll" : "post"}
               </button>
             </div>
           </div>

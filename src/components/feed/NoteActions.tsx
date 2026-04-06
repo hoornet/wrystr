@@ -80,12 +80,15 @@ export function NoteActions({ event, onReplyToggle, showReply }: NoteActionsProp
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
         <button
           onClick={onReplyToggle}
+          title="Reply"
           className={`text-[11px] transition-colors ${
-            showReply ? "text-accent" : "text-text-dim hover:text-text"
+            showReply ? "text-accent" : "text-text hover:text-accent"
           }`}
         >
-          reply{replyCount !== null && replyCount > 0 ? ` ${replyCount}` : ""}
+          <span className="text-[14px]">↩</span>{replyCount !== null && replyCount > 0 ? ` ${replyCount}` : ""}
         </button>
+
+        <span className="text-text-dim text-[10px] select-none">·</span>
 
         {/* Emoji reaction pills */}
         <div className="relative flex flex-wrap items-center gap-1">
@@ -94,6 +97,7 @@ export function NoteActions({ event, onReplyToggle, showReply }: NoteActionsProp
               key={emoji}
               onClick={() => handleReact(emoji)}
               disabled={reacting || myReactions.has(emoji)}
+              title="React"
               className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[11px] rounded-sm border transition-colors ${
                 myReactions.has(emoji)
                   ? "border-accent/40 bg-accent/10 text-accent"
@@ -110,7 +114,7 @@ export function NoteActions({ event, onReplyToggle, showReply }: NoteActionsProp
             <button
               onClick={() => setShowEmojiPicker((v) => !v)}
               disabled={reacting}
-              className="inline-flex items-center px-1 py-0.5 text-[11px] text-text-dim hover:text-accent border border-transparent hover:border-border rounded-sm transition-colors opacity-0 group-hover/card:opacity-100 disabled:opacity-30"
+              className="inline-flex items-center px-1.5 py-0.5 text-[12px] text-text-dim hover:text-accent border border-border hover:border-accent/40 rounded-sm transition-colors disabled:opacity-30"
               title="React with emoji"
             >
               +
@@ -139,46 +143,66 @@ export function NoteActions({ event, onReplyToggle, showReply }: NoteActionsProp
           )}
         </div>
 
+        <span className="text-text-dim text-[10px] select-none">·</span>
+
         <button
           onClick={handleRepost}
           disabled={reposting || reposted}
-          className={`text-[11px] transition-colors disabled:cursor-default ${
-            reposted ? "text-accent" : "text-text-dim hover:text-accent"
+          title="Repost"
+          className={`text-[14px] transition-colors disabled:cursor-default ${
+            reposted ? "text-accent" : "text-text hover:text-accent"
           }`}
         >
-          {reposted ? "reposted ✓" : reposting ? "…" : "repost"}
+          ⟳{reposted ? <span className="text-[11px] ml-0.5">✓</span> : reposting ? <span className="text-[11px] ml-0.5">…</span> : ""}
         </button>
+
+        <span className="text-text-dim text-[10px] select-none">·</span>
+
         <button
           onClick={() => setShowQuote(true)}
-          className="text-[11px] text-text-dim hover:text-text transition-colors"
+          title="Quote"
+          className="text-[14px] text-text hover:text-accent transition-colors"
         >
-          quote
+          ❝
         </button>
+
         {(profile?.lud16 || profile?.lud06) && (
-          <button
-            onClick={() => setShowZap(true)}
-            className="text-[11px] text-text-dim hover:text-zap transition-colors"
-          >
-            {zapData && zapData.totalSats > 0
-              ? `⚡ ${zapData.totalSats.toLocaleString()} sats`
-              : "⚡ zap"}
-          </button>
+          <>
+            <span className="text-text-dim text-[10px] select-none">·</span>
+            <button
+              onClick={() => setShowZap(true)}
+              title="Zap"
+              className="text-[11px] text-text hover:text-zap transition-colors"
+            >
+              {zapData && zapData.totalSats > 0
+                ? `⚡ ${zapData.totalSats.toLocaleString()} sats`
+                : "⚡"}
+            </button>
+          </>
         )}
+
+        <span className="text-text-dim text-[10px] select-none">·</span>
+
         <button
           onClick={() => isBookmarked ? removeBookmark(event.id!) : addBookmark(event.id!)}
-          className={`text-[11px] transition-colors ${
-            isBookmarked ? "text-accent" : "text-text-dim hover:text-accent"
+          title={isBookmarked ? "Remove bookmark" : "Bookmark"}
+          className={`text-[14px] transition-colors ${
+            isBookmarked ? "text-accent" : "text-text hover:text-accent"
           }`}
         >
-          {isBookmarked ? "▪ saved" : "▫ save"}
+          {isBookmarked ? "★" : "☆"}
         </button>
+
+        <span className="text-text-dim text-[10px] select-none">·</span>
+
         <button
           onClick={handleShare}
-          className={`text-[11px] transition-colors ${
-            copied ? "text-accent" : "text-text-dim hover:text-text"
+          title="Copy link"
+          className={`text-[14px] transition-colors ${
+            copied ? "text-accent" : "text-text hover:text-accent"
           }`}
         >
-          {copied ? "copied ✓" : "share"}
+          {copied ? <span className="text-[11px]">✓</span> : "⤴"}
         </button>
       </div>
 

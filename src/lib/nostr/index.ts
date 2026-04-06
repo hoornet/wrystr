@@ -12,5 +12,7 @@ export type { AdvancedSearchResults } from "./search";
 export { fetchUserRelayList, publishRelayList, fetchRelayRecommendations } from "./relays";
 export type { UserRelayList } from "./relays";
 export { fetchTrendingCandidates, fetchTrendingHashtags } from "./trending";
+export { publishPoll, publishPollResponse, fetchPollResponses } from "./polls";
+export type { PollVotes } from "./polls";
 export { verifyReputation } from "./vertex";
 export type { ReputationResult, ReputationEntry } from "./vertex";

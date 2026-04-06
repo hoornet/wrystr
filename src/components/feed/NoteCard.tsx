@@ -11,6 +11,7 @@ import { getParentEventId } from "../../lib/threadTree";
 import { NoteContent } from "./NoteContent";
 import { NoteActions, LoggedOutStats } from "./NoteActions";
 import { InlineReplyBox } from "./InlineReplyBox";
+import { PollWidget } from "../poll/PollWidget";
 
 interface NoteCardProps {
   event: NDKEvent;
@@ -177,6 +178,9 @@ export const NoteCard = memo(function NoteCard({ event, focused, onReplyInThread
             <NoteContent content={event.content} inline />
           </div>
           <NoteContent content={event.content} mediaOnly />
+
+          {/* Poll options — kind 1068 */}
+          {event.kind === 1068 && <PollWidget event={event} />}
 
           {/* Actions */}
           {loggedIn && !!getNDK().signer && (

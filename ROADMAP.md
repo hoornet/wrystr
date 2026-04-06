@@ -133,7 +133,7 @@ Bugs found during testing are fixed before Phase N+1 starts. A release is cut be
 ### v0.12.x — Podcasts & Value 4 Value (2026-04-05)
 - **Podcast player** — search, subscribe, play podcasts directly in Vega
 - **V4V streaming** — stream sats to podcast creators via Lightning (keysend + LNURL-pay); automatic recipient splits (hosts, producers, apps)
-- **Own relay** — `wss://relay.veganostr.com` (strfry, Helsinki); wired as default for all users
+- **Own relay** — `wss://relay2.veganostr.com` (custom Go relay, Helsinki); 19 NIPs, NIP-45 COUNT, NIP-50 Search, NIP-77 Negentropy
 - **Media feed fixed** — 24h window replaces 2h, actually returns results now
 - **Trending feed resilience** — retry on slow startup, preserves existing notes
 - **Read-only banner** — clear visual indicator when not signed in

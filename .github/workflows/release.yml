@@ -69,6 +69,10 @@ jobs:
 
             > **Windows note:** The installer is not yet code-signed. Windows SmartScreen will show an "Unknown publisher" warning — click "More info → Run anyway" to install.
 
+            ### v0.12.3 — Fix Direct Messages
+            - **Fix DMs not loading** — NIP-17 gift-wrapped messages were silently dropped by NDK's fetchEvents; switched to subscribe-based fetch that correctly receives kind 1059 events
+            - **Repo cleanup** — hardened .gitignore, updated AGENTS.md and ROADMAP.md
+
             ### v0.12.2 — Vega Public Relay
             - **`wss://relay.veganostr.com`** — Vega's own public relay, included by default for all users
             - Existing users get the relay auto-added on upgrade (one-time migration)

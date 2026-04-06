@@ -155,13 +155,17 @@ function ThreadPanel({
     setSending(true);
     setSendError(null);
     try {
+      console.log("[DM-UI] sending to", partnerPubkey.slice(0, 8));
       await sendDM(partnerPubkey, content);
+      console.log("[DM-UI] send completed, re-fetching thread...");
       setText("");
       // Re-fetch thread to include the sent message
       const updated = await fetchDMThread(myPubkey, partnerPubkey);
+      console.log("[DM-UI] re-fetch got", updated.length, "messages");
       setMessages(updated);
       textareaRef.current?.focus();
     } catch (err) {
+      console.error("[DM-UI] send failed:", err);
       setSendError(String(err));
     } finally {
       setSending(false);

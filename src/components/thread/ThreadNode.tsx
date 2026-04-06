@@ -18,7 +18,7 @@ interface ThreadNodeProps {
 }
 
 const MAX_VISIBLE_CHILDREN = 3;
-const MAX_INDENT_DEPTH = 4;
+const MAX_INDENT_DEPTH = 3;
 
 function InlineThreadReply({ replyTo, rootEvent, onPublished }: {
   replyTo: NDKEvent;
@@ -133,13 +133,13 @@ export function ThreadNodeComponent({ node, rootEvent, onReplyPublished, focused
   const shownChildren = shouldCollapse ? visibleChildren.slice(0, 2) : visibleChildren;
   const remainingCount = visibleChildren.length - shownChildren.length;
 
-  const indent = Math.min(node.depth, MAX_INDENT_DEPTH);
+  // Use relative indent: each level adds one step, but only up to MAX_INDENT_DEPTH
+  const shouldIndent = node.depth > 0 && node.depth <= MAX_INDENT_DEPTH;
   const isFocused = node.event.id === focusedId;
 
   return (
     <div
-      className={indent > 0 ? "border-l-2 border-border" : ""}
-      style={indent > 0 ? { marginLeft: `${indent * 16}px` } : undefined}
+      className={shouldIndent ? "border-l-2 border-border ml-4 pl-1" : node.depth > MAX_INDENT_DEPTH ? "border-l-2 border-border pl-1" : ""}
     >
       <NoteCard
         event={node.event}
@@ -148,7 +148,7 @@ export function ThreadNodeComponent({ node, rootEvent, onReplyPublished, focused
       />
 
       {showReplyBox && (
-        <div style={indent > 0 ? { marginLeft: "16px" } : undefined}>
+        <div className={shouldIndent ? "ml-2" : ""}>
           <InlineThreadReply
             replyTo={node.event}
             rootEvent={rootEvent}
@@ -175,18 +175,14 @@ export function ThreadNodeComponent({ node, rootEvent, onReplyPublished, focused
       {remainingCount > 0 && (
         <button
           onClick={() => setExpanded(true)}
-          className="text-accent hover:text-accent-hover text-[11px] py-1.5 transition-colors"
-          style={{ marginLeft: `${(indent + 1) * 16}px` }}
+          className="text-accent hover:text-accent-hover text-[11px] py-1.5 ml-4 transition-colors"
         >
           show {remainingCount} more {remainingCount === 1 ? "reply" : "replies"}
         </button>
       )}
 
       {hiddenCount > 0 && (
-        <div
-          className="text-text-dim text-[10px] py-1 italic"
-          style={{ marginLeft: `${(indent + 1) * 16}px` }}
-        >
+        <div className="text-text-dim text-[10px] py-1 ml-4 italic">
           {hiddenCount} {hiddenCount === 1 ? "reply" : "replies"} hidden (muted)
         </div>
       )}

@@ -272,8 +272,9 @@ export function ComposeBox({ onPublished, onNoteInjected }: { onPublished?: () =
                     onClick={() => removeAttachment(i)}
                     className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-danger text-white text-[10px] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Remove"
+                    aria-label="Remove attachment"
                   >
-                    x
+                    ×
                   </button>
                 </div>
               ))}

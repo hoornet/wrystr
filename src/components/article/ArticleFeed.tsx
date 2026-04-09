@@ -70,7 +70,7 @@ export function ArticleFeed() {
           onClick={() => setView("article-editor")}
           className="text-[11px] px-3 py-1 border border-accent/60 text-accent hover:bg-accent hover:text-accent-text transition-colors"
         >
-          write article
+          Write article
         </button>
       </header>
 

@@ -10,6 +10,7 @@ import { useNotificationsStore } from "./notifications";
 import { useFeedStore } from "./feed";
 import { startNotificationPoller, stopNotificationPoller } from "../lib/notificationPoller";
 import { dbLoadProfile } from "../lib/db";
+import { debug } from "../lib/debug";
 
 export interface SavedAccount {
   pubkey: string;
@@ -116,7 +117,7 @@ export const useUserStore = create<UserState>((set, get) => ({
 
       // Store nsec in OS keychain
       invoke<void>("store_nsec", { pubkey, nsec: nsecInput }).catch((err) => {
-        console.warn("Failed to store nsec in OS keychain:", err);
+        debug.warn("Failed to store nsec in OS keychain:", err);
       });
 
       // Load per-account NWC wallet
@@ -253,7 +254,7 @@ export const useUserStore = create<UserState>((set, get) => ({
           _signerCache.set(acct.pubkey, new NDKPrivateKeySigner(privkey));
         }
       } catch (err) {
-        console.warn(`Failed to load nsec for ${acct.npub} from keychain:`, err);
+        debug.warn(`Failed to load nsec for ${acct.npub} from keychain:`, err);
       }
     }
 
@@ -264,7 +265,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         const signer = await NDKNip46Signer.fromPayload(acct.signerPayload, getNDK());
         _nip46SignerCache.set(acct.pubkey, signer);
       } catch (err) {
-        console.warn(`Failed to restore NIP-46 session for ${acct.npub}:`, err);
+        debug.warn(`Failed to restore NIP-46 session for ${acct.npub}:`, err);
       }
     }
 
@@ -295,7 +296,7 @@ export const useUserStore = create<UserState>((set, get) => ({
           useNotificationsStore.getState().fetchNotifications(savedPubkey);
           startNotificationPoller(savedPubkey);
         } catch (err) {
-          console.warn("Failed to restore NIP-46 session:", err);
+          debug.warn("Failed to restore NIP-46 session:", err);
         }
       }
       return;
@@ -343,7 +344,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         useUIStore.getState().setView("feed");
         return;
       } catch (err) {
-        console.warn("NIP-46 signer reconnect failed during switch:", err);
+        debug.warn("NIP-46 signer reconnect failed during switch:", err);
       }
     }
 
@@ -376,7 +377,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         succeeded = !!getNDK().signer;
       }
     } catch (err) {
-      console.warn("Keychain load failed during account switch:", err);
+      debug.warn("Keychain load failed during account switch:", err);
     }
     if (!succeeded) {
       const account = get().accounts.find((a) => a.pubkey === pubkey);

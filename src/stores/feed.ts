@@ -5,6 +5,7 @@ import { seedReactionsCache } from "../hooks/useReactions";
 import { useToastStore } from "./toast";
 import { dbLoadFeed, dbSaveNotes } from "../lib/db";
 import { diagWrapFetch, logDiag, startRelaySnapshots, getRelayStates } from "../lib/feedDiagnostics";
+import { debug } from "../lib/debug";
 // Local relay imports deferred to avoid circular dependency
 // import { isLocalRelayEnabled, connectLocalRelay } from "../lib/localRelay";
 
@@ -68,12 +69,12 @@ export const useFeedStore = create<FeedState>((set, get) => ({
           const { pubkey, follows } = useUserStore.getState();
           if (pubkey) {
             syncToLocalRelay(pubkey, follows).catch((err) =>
-              console.warn("[Vega] Local relay sync failed:", err),
+              debug.warn("[Vega] Local relay sync failed:", err),
             );
           }
         }
       } catch (err) {
-        console.warn("[Vega] Local relay setup failed:", err);
+        debug.warn("[Vega] Local relay setup failed:", err);
       }
 
       const connectMs = Math.round(performance.now() - connectStart);
@@ -226,7 +227,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     });
 
     liveSub = sub;
-    console.log("[Vega] Live feed subscription started");
+    debug.log("[Vega] Live feed subscription started");
   },
 
   loadTrendingFeed: async (force?: boolean) => {

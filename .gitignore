@@ -18,6 +18,7 @@ dist-ssr
 # Build artifacts / test screenshots
 squashfs-root/
 phase-4-tests/
+screenshots/
 *.png
 !src-tauri/icons/*.png
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NDKEvent, nip19 } from "@nostr-dev-kit/ndk";
 import { useUIStore } from "../../stores/ui";
 import { useUserStore } from "../../stores/user";
@@ -12,6 +12,9 @@ import { ArticleCard } from "../article/ArticleCard";
 import { ZapModal } from "../zap/ZapModal";
 import { ImageLightbox } from "../shared/ImageLightbox";
 import { EditProfileForm } from "./EditProfileForm";
+import { parseContent } from "../../lib/parsing";
+import { tryHandleUrlInternally, tryOpenNostrEntity } from "../feed/TextSegments";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { ProfileMediaGallery } from "./ProfileMediaGallery";
 
 function TopFollowerAvatar({ pubkey }: { pubkey: string }) {
@@ -88,6 +91,7 @@ export function ProfileView() {
   const name = profileName(profile, shortenPubkey(pubkey));
   const avatar = typeof profile?.picture === "string" ? profile.picture : undefined;
   const about = typeof profile?.about === "string" ? profile.about : undefined;
+  const aboutSegments = useMemo(() => about ? parseContent(about) : [], [about]);
   const nip05 = typeof profile?.nip05 === "string" ? profile.nip05 : undefined;
   const website = typeof profile?.website === "string" ? profile.website : undefined;
   const lud16 = typeof profile?.lud16 === "string" ? profile.lud16 : undefined;
@@ -255,7 +259,31 @@ export function ProfileView() {
                     {website.replace(/^https?:\/\//, "")}
                   </a>
                 )}
-                {about && <p className="text-text text-[12px] mt-2 leading-relaxed whitespace-pre-wrap">{about}</p>}
+                {about && (
+                  <p className="text-text text-[12px] mt-2 leading-relaxed whitespace-pre-wrap break-words">
+                    {aboutSegments.map((seg, i) => {
+                      if (seg.type === "link") return (
+                        <a key={i} className="text-accent hover:text-accent-hover underline underline-offset-2 decoration-accent/40"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!tryHandleUrlInternally(seg.value)) openUrl(seg.value).catch(() => {}); }}>
+                          {seg.display || seg.value}
+                        </a>
+                      );
+                      if (seg.type === "mention" || seg.type === "naddr") return (
+                        <span key={i} className="text-accent hover:text-accent-hover cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); tryOpenNostrEntity(seg.value); }}>
+                          {seg.type === "mention" ? "@" : "🔗 "}{String(seg.display ?? seg.value).slice(0, 20)}…
+                        </span>
+                      );
+                      if (seg.type === "hashtag") return (
+                        <span key={i} className="text-accent/80 cursor-pointer hover:text-accent"
+                          onClick={(e) => { e.stopPropagation(); useUIStore.getState().openHashtag?.(seg.value); }}>
+                          {String(seg.display ?? seg.value)}
+                        </span>
+                      );
+                      return <span key={i}>{seg.value}</span>;
+                    })}
+                  </p>
+                )}
                 {isOwn && !about && (
                   <p className="text-text-dim text-[12px] mt-2 italic">No bio yet — click "edit profile" to add one.</p>
                 )}

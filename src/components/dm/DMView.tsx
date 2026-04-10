@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NDKEvent, NDKKind, nip19 } from "@nostr-dev-kit/ndk";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useUserStore } from "../../stores/user";
 import { useUIStore } from "../../stores/ui";
 import { useNotificationsStore } from "../../stores/notifications";
@@ -7,6 +8,8 @@ import { fetchDMConversations, fetchDMThread, sendDM, decryptDM, getNDK } from "
 import { useProfile } from "../../hooks/useProfile";
 import { timeAgo, shortenPubkey, profileName } from "../../lib/utils";
 import { debug } from "../../lib/debug";
+import { parseContent } from "../../lib/parsing";
+import { tryHandleUrlInternally, tryOpenNostrEntity } from "../feed/TextSegments";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,6 +80,75 @@ function ConvRow({
   );
 }
 
+// ── DM text renderer ─────────────────────────────────────────────────────────
+
+function DMText({ text }: { text: string }) {
+  const segments = useMemo(() => parseContent(text), [text]);
+  return (
+    <span className="whitespace-pre-wrap break-words">
+      {segments.map((seg, i) => {
+        if (seg.type === "link") {
+          return (
+            <a
+              key={i}
+              href={seg.value}
+              className="text-accent hover:text-accent-hover underline underline-offset-2 decoration-accent/40"
+              onClick={(e) => {
+                e.preventDefault();
+                if (!tryHandleUrlInternally(seg.value)) openUrl(seg.value).catch(() => {});
+              }}
+            >
+              {seg.display || seg.value}
+            </a>
+          );
+        }
+        if (seg.type === "image") {
+          return (
+            <img
+              key={i}
+              src={seg.value}
+              className="max-h-48 max-w-full rounded-md mt-1.5 block"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+          );
+        }
+        if (seg.type === "naddr" || seg.type === "mention") {
+          return (
+            <span
+              key={i}
+              className="text-accent hover:text-accent-hover cursor-pointer underline-offset-2"
+              onClick={() => tryOpenNostrEntity(seg.value)}
+            >
+              {seg.type === "naddr" ? "🔗 " : "@"}{String(seg.display ?? seg.value).slice(0, 20)}…
+            </span>
+          );
+        }
+        if (seg.type === "quote") {
+          return (
+            <span key={i} className="text-accent/60 text-xs cursor-pointer hover:text-accent italic">
+              ↩ quoted note
+            </span>
+          );
+        }
+        // video/audio/youtube/etc. — show URL as a plain link
+        if (["video", "audio", "youtube", "vimeo", "spotify", "tidal", "fountain"].includes(seg.type)) {
+          return (
+            <a
+              key={i}
+              href={seg.value}
+              className="text-accent hover:text-accent-hover underline underline-offset-2 decoration-accent/40"
+              onClick={(e) => { e.preventDefault(); openUrl(seg.value).catch(() => {}); }}
+            >
+              {seg.value}
+            </a>
+          );
+        }
+        return <span key={i}>{seg.value}</span>;
+      })}
+    </span>
+  );
+}
+
 // ── Message bubble ────────────────────────────────────────────────────────────
 
 function MessageBubble({ event, myPubkey }: { event: NDKEvent; myPubkey: string }) {
@@ -106,7 +178,7 @@ function MessageBubble({ event, myPubkey }: { event: NDKEvent; myPubkey: string 
         ) : text === null ? (
           <span className="text-text-dim">…</span>
         ) : (
-          text
+          <DMText text={text} />
         )}
         <div className={`text-[10px] mt-1 ${isMine ? "text-accent/60" : "text-text-dim"}`}>
           {time}

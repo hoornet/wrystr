@@ -165,6 +165,19 @@ export function renderTextSegments(
           </span>
         );
         break;
+      case "quote":
+        // Inline text placeholder — the QuotePreview card renders separately below
+        elements.push(
+          <span
+            key={i}
+            className="text-accent/60 text-xs cursor-pointer hover:text-accent"
+            onClick={(e) => { e.stopPropagation(); tryOpenNostrEntity(`note1${seg.value.slice(0, 8)}`); }}
+            title="Quoted note"
+          >
+            ↩ note
+          </span>
+        );
+        break;
       case "hashtag":
         elements.push(
           <span

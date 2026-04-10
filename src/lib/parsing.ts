@@ -10,7 +10,7 @@ const TIDAL_REGEX = /tidal\.com\/(?:browse\/)?(?:track|album|playlist)\/([a-zA-Z
 const SPOTIFY_REGEX = /open\.spotify\.com\/(track|album|playlist|episode|show)\/([a-zA-Z0-9]+)/;
 const VIMEO_REGEX = /vimeo\.com\/(\d+)/;
 const FOUNTAIN_REGEX = /fountain\.fm\/(episode|show)\/([a-zA-Z0-9-]+)/;
-const NOSTR_MENTION_REGEX = /nostr:(npub1[a-z0-9]+|note1[a-z0-9]+|nevent1[a-z0-9]+|nprofile1[a-z0-9]+|naddr1[a-z0-9]+)/g;
+const NOSTR_MENTION_REGEX = /nostr:(npub1[a-z0-9]+|note1[a-z0-9]+|nevent1[a-z0-9]+|nprofile1[a-z0-9]+|naddr1[a-z0-9]+)/gi;
 const HASHTAG_REGEX = /(?<=\s|^)#(\w{2,})/g;
 
 export interface ContentSegment {
@@ -114,9 +114,9 @@ export function parseContent(content: string): ContentSegment[] {
   }
 
   // Find nostr: mentions
-  const mentionRegex = new RegExp(NOSTR_MENTION_REGEX.source, "g");
+  const mentionRegex = new RegExp(NOSTR_MENTION_REGEX.source, "gi");
   while ((match = mentionRegex.exec(content)) !== null) {
-    const raw = match[1];
+    const raw = match[1].toLowerCase();
     let display = raw.slice(0, 12) + "…";
     let mentionPubkey: string | undefined;
 

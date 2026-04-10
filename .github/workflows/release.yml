@@ -69,6 +69,14 @@ jobs:
 
             > **Windows note:** The installer is not yet code-signed. Windows SmartScreen will show an "Unknown publisher" warning — click "More info → Run anyway" to install.
 
+            ### v0.12.6 — DM Polish & Image Fixes
+
+            - **Clickable links in DMs** — URLs, nostr entities, and images now render properly inside direct messages; images show inline, links open in browser
+            - **Multi-image upload fix** — selecting multiple images in the article editor now inserts all of them (previously only the last one was kept)
+            - **Article image lightbox** — clicking a thumbnail in the editor strip opens a full-size lightbox overlay
+            - **Blossom image rendering** — images served from content-addressed storage (Blossom/NIP-96) with non-standard extensions (`.jp` etc.) now render inline instead of as plain links
+            - **nostr: entity parsing** — case-insensitive matching for `nostr:` prefix; broader extension support for image URLs
+
             ### v0.12.5 — UI Polish & Consistency
 
             - **Comprehensive UI polish** — 14 rounds of systematic fixes across every view: sentence case on all button labels, Unicode ellipsis (…) and × throughout, consistent theme tokens replacing all hard-coded colors

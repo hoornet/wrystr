@@ -41,6 +41,7 @@ export function Feed() {
   const contentMatchesMutedKeyword = useMuteStore((s) => s.contentMatchesMutedKeyword);
   const tab = useUIStore((s) => s.feedTab);
   const setTab = useUIStore((s) => s.setFeedTab);
+  const openHashtag = useUIStore((s) => s.openHashtag);
   const feedLanguageFilter = useUIStore((s) => s.feedLanguageFilter);
   const setFeedLanguageFilter = useUIStore((s) => s.setFeedLanguageFilter);
   const [followNotes, setFollowNotes] = useState<NDKEvent[]>([]);
@@ -224,6 +225,27 @@ export function Feed() {
                     ? "Try clearing the script filter or refreshing."
                     : "Try refreshing or switching tabs."}
             </p>
+            {isFollowing && follows.length === 0 && (() => {
+              const stored = localStorage.getItem("wrystr_interests");
+              const interests: string[] = stored ? JSON.parse(stored) : [];
+              if (interests.length === 0) return null;
+              return (
+                <div className="pt-2">
+                  <p className="text-text-dim text-[11px] mb-2">Explore your interests:</p>
+                  <div className="flex flex-wrap justify-center gap-1.5">
+                    {interests.map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => openHashtag(tag)}
+                        className="px-2.5 py-1 text-[11px] border border-border text-text-dim hover:border-accent/40 hover:text-accent transition-colors"
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 

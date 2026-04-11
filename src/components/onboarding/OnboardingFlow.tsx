@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { NDKPrivateKeySigner } from "@nostr-dev-kit/ndk";
 import { useUserStore } from "../../stores/user";
 
-type Step = "welcome" | "create" | "backup" | "login";
+type Step = "welcome" | "create" | "backup" | "interests" | "login";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -27,6 +27,87 @@ function Heading({ children }: { children: React.ReactNode }) {
 
 function Body({ children }: { children: React.ReactNode }) {
   return <p className="text-text-dim text-[13px] leading-relaxed mb-6">{children}</p>;
+}
+
+// ─── Interest topics ─────────────────────────────────────────────────────────
+
+const INTEREST_TOPICS = [
+  { emoji: "₿", label: "Bitcoin",      tag: "bitcoin" },
+  { emoji: "⚡", label: "Nostr",        tag: "nostr" },
+  { emoji: "💻", label: "Tech",         tag: "technology" },
+  { emoji: "🔒", label: "Privacy",      tag: "privacy" },
+  { emoji: "🎨", label: "Art",          tag: "art" },
+  { emoji: "🎵", label: "Music",        tag: "music" },
+  { emoji: "📷", label: "Photography",  tag: "photography" },
+  { emoji: "🎮", label: "Gaming",       tag: "gaming" },
+  { emoji: "🔬", label: "Science",      tag: "science" },
+  { emoji: "📚", label: "Books",        tag: "books" },
+  { emoji: "🐧", label: "Linux",        tag: "linux" },
+  { emoji: "🤔", label: "Philosophy",   tag: "philosophy" },
+  { emoji: "💰", label: "Finance",      tag: "finance" },
+  { emoji: "🏃", label: "Health",       tag: "health" },
+  { emoji: "🍕", label: "Food",         tag: "food" },
+  { emoji: "✈️", label: "Travel",       tag: "travel" },
+  { emoji: "⚽", label: "Sports",       tag: "sports" },
+  { emoji: "📰", label: "News",         tag: "news" },
+];
+
+// ─── Step: Interests ─────────────────────────────────────────────────────────
+
+function InterestsStep({ onComplete }: { onComplete: () => void }) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const toggle = (tag: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(tag) ? next.delete(tag) : next.add(tag);
+      return next;
+    });
+
+  const handleConfirm = () => {
+    localStorage.setItem("wrystr_interests", JSON.stringify([...selected]));
+    onComplete();
+  };
+
+  return (
+    <Shell>
+      <Heading>What are you into?</Heading>
+      <Body>Pick a few topics to get your feed started. You can always change this later.</Body>
+
+      <div className="grid grid-cols-3 gap-2 mb-7">
+        {INTEREST_TOPICS.map(({ emoji, label, tag }) => {
+          const active = selected.has(tag);
+          return (
+            <button
+              key={tag}
+              onClick={() => toggle(tag)}
+              className={`flex items-center gap-2 px-3 py-2 text-[12px] border transition-colors text-left ${
+                active
+                  ? "bg-accent/10 border-accent text-accent"
+                  : "border-border text-text-dim hover:border-accent/40 hover:text-text"
+              }`}
+            >
+              <span>{emoji}</span>
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        onClick={handleConfirm}
+        className="w-full py-2.5 text-[13px] font-medium bg-accent hover:bg-accent-hover text-accent-text transition-colors mb-2"
+      >
+        Get started →
+      </button>
+      <button
+        onClick={handleConfirm}
+        className="w-full py-2 text-[12px] text-text-dim hover:text-text transition-colors"
+      >
+        Skip for now
+      </button>
+    </Shell>
+  );
 }
 
 // ─── Step: Welcome ───────────────────────────────────────────────────────────
@@ -313,7 +394,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   }
 
   if (step === "backup" && generatedSigner) {
-    return <BackupStep signer={generatedSigner} onComplete={onComplete} />;
+    return <BackupStep signer={generatedSigner} onComplete={() => setStep("interests")} />;
+  }
+
+  if (step === "interests") {
+    return <InterestsStep onComplete={onComplete} />;
   }
 
   if (step === "login") {

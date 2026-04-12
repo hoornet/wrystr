@@ -146,9 +146,3 @@ pub fn query_events(conn: &Connection, filters: &[Filter]) -> rusqlite::Result<V
     all_results.dedup();
     Ok(all_results)
 }
-
-/// Delete an event by ID.
-pub fn delete_event(conn: &Connection, id: &str) -> rusqlite::Result<()> {
-    conn.execute("DELETE FROM events WHERE id = ?1", [id])?;
-    Ok(())
-}

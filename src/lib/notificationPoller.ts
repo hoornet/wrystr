@@ -12,8 +12,7 @@ async function getProfileName(pubkey: string): Promise<string> {
   try {
     const p = await fetchProfile(pubkey);
     if (p) {
-      const meta = p as Record<string, string>;
-      return meta.display_name || meta.name || pubkey.slice(0, 8) + "…";
+      return (p as Record<string, unknown>).display_name as string || (p as Record<string, unknown>).name as string || pubkey.slice(0, 8) + "…";
     }
   } catch { /* ignore */ }
   return pubkey.slice(0, 8) + "…";

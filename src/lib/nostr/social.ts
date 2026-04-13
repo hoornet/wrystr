@@ -33,9 +33,15 @@ export async function publishContactList(pubkeys: string[]): Promise<void> {
 
 export async function fetchProfile(pubkey: string) {
   const instance = getNDK();
-  const user = instance.getUser({ pubkey });
-  await user.fetchProfile();
-  return user.profile;
+  const events = await fetchWithTimeout(instance, { kinds: [0], authors: [pubkey] }, FEED_TIMEOUT);
+  const event = [...events].sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))[0];
+  if (!event) return null;
+  try {
+    const content = JSON.parse(event.content) as Record<string, unknown>;
+    return { ...content, _createdAt: event.created_at ?? null };
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchFollowSuggestions(myFollows: string[]): Promise<{ pubkey: string; mutualCount: number }[]> {

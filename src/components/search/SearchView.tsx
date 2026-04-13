@@ -172,11 +172,11 @@ export function SearchView() {
               ...s,
               profile: p ? {
                 pubkey: s.pubkey,
-                name: (p as Record<string, string>).name || "",
-                displayName: (p as Record<string, string>).display_name || (p as Record<string, string>).name || "",
-                picture: (p as Record<string, string>).picture || "",
-                nip05: (p as Record<string, string>).nip05 || "",
-                about: (p as Record<string, string>).about || "",
+                name: (p as Record<string, unknown>).name as string || "",
+                displayName: (p as Record<string, unknown>).display_name as string || (p as Record<string, unknown>).name as string || "",
+                picture: (p as Record<string, unknown>).picture as string || "",
+                nip05: (p as Record<string, unknown>).nip05 as string || "",
+                about: (p as Record<string, unknown>).about as string || "",
               } : null,
             };
           } catch {

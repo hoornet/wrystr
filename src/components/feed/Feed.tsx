@@ -3,6 +3,7 @@ import { useFeedStore } from "../../stores/feed";
 import { useUserStore } from "../../stores/user";
 import { useMuteStore } from "../../stores/mute";
 import { useUIStore } from "../../stores/ui";
+import { useWoTStore } from "../../stores/wot";
 import { fetchFollowFeed, getNDK, ensureConnected } from "../../lib/nostr";
 import { diagWrapFetch, logDiag } from "../../lib/feedDiagnostics";
 import { detectScript, getEventLanguageTag, FILTER_SCRIPTS } from "../../lib/language";
@@ -44,6 +45,11 @@ export function Feed() {
   const openHashtag = useUIStore((s) => s.openHashtag);
   const feedLanguageFilter = useUIStore((s) => s.feedLanguageFilter);
   const setFeedLanguageFilter = useUIStore((s) => s.setFeedLanguageFilter);
+  const wotEnabled = useWoTStore((s) => s.enabled);
+  const wotSet = useWoTStore((s) => s.wotSet);
+  const wotLoading = useWoTStore((s) => s.loading);
+  const buildWoT = useWoTStore((s) => s.buildWoT);
+  const myPubkey = useUserStore((s) => s.pubkey);
   const [followNotes, setFollowNotes] = useState<NDKEvent[]>([]);
   const [followLoading, setFollowLoading] = useState(false);
   const [, setTick] = useState(0);
@@ -70,6 +76,12 @@ export function Feed() {
     }
   }, [tab, follows]);
 
+  useEffect(() => {
+    if (wotEnabled && myPubkey && follows.length > 0 && wotSet.size === 0 && !wotLoading) {
+      buildWoT(myPubkey, follows);
+    }
+  }, [wotEnabled, myPubkey, follows]);
+
   const loadFollowFeed = useCallback(async () => {
     setFollowLoading(true);
     try {
@@ -91,6 +103,7 @@ export function Feed() {
   const filteredNotes = activeNotes.filter((event) => {
     if (mutedPubkeys.includes(event.pubkey)) return false;
     if (contentMatchesMutedKeyword(event.content)) return false;
+    if (tab === "global" && wotEnabled && wotSet.size > 0 && !wotSet.has(event.pubkey)) return false;
     const c = event.content.trim();
     if (!c || c.startsWith("{") || c.startsWith("[")) return false;
     // Filter out notes that look like base64 blobs or relay protocol messages

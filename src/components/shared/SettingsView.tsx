@@ -3,6 +3,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useUserStore } from "../../stores/user";
 import { useUIStore } from "../../stores/ui";
+import { useWoTStore } from "../../stores/wot";
 import { themes } from "../../lib/themes";
 import { useMuteStore } from "../../stores/mute";
 import { useBookmarkStore } from "../../stores/bookmark";
@@ -132,6 +133,73 @@ function MutedKeywordsSection() {
 </button>
       </div>
       {error && <p className="text-danger text-[11px] mt-1">{error}</p>}
+    </section>
+  );
+}
+
+function WoTSection() {
+  const { enabled, wotSet, loading, setEnabled, buildWoT } = useWoTStore();
+  const { pubkey, follows } = useUserStore();
+  const noFollows = follows.length === 0;
+
+  const toggle = () => {
+    const next = !enabled;
+    setEnabled(next);
+    if (next && pubkey && follows.length > 0 && wotSet.size === 0 && !loading) {
+      buildWoT(pubkey, follows);
+    }
+  };
+
+  const handleRebuild = () => {
+    if (pubkey && follows.length > 0 && !loading) {
+      buildWoT(pubkey, follows);
+    }
+  };
+
+  return (
+    <section>
+      <h2 className="text-text text-[11px] font-medium uppercase tracking-widest mb-2 text-text-dim">
+        Web of Trust filter
+      </h2>
+      <p className="text-text-dim text-[11px] mb-3">
+        Only show global feed notes from people you follow or people they follow.
+      </p>
+      <label className={`flex items-center gap-3 ${noFollows ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
+        <button
+          onClick={noFollows ? undefined : toggle}
+          disabled={noFollows}
+          className={`w-9 h-5 rounded-full transition-colors relative shrink-0 ${
+            enabled && !noFollows ? "bg-accent" : "bg-border"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-bg transition-transform ${
+              enabled && !noFollows ? "translate-x-4" : "translate-x-0"
+            }`}
+          />
+        </button>
+        <span className="text-text text-[12px]">WoT feed filter</span>
+      </label>
+      {noFollows && (
+        <p className="text-text-dim text-[10px] mt-1.5 ml-12">Follow some people first.</p>
+      )}
+      {enabled && !noFollows && (
+        <div className="mt-2 ml-12 space-y-1">
+          {loading ? (
+            <p className="text-text-dim text-[10px]">Building…</p>
+          ) : wotSet.size > 0 ? (
+            <div className="flex items-center gap-3">
+              <p className="text-text-dim text-[10px]">Trusted accounts: {wotSet.size}</p>
+              <button
+                onClick={handleRebuild}
+                className="text-[10px] text-text-dim hover:text-accent transition-colors"
+              >
+                Rebuild
+              </button>
+            </div>
+          ) : null}
+        </div>
+      )}
     </section>
   );
 }
@@ -453,6 +521,7 @@ export function SettingsView() {
         <IdentitySection />
         <MuteSection />
         <MutedKeywordsSection />
+        <WoTSection />
       </div>
     </div>
   );

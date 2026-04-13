@@ -8,6 +8,7 @@ import { fetchNoteById, fetchThreadEvents, fetchAncestors, publishReply, getNDK,
 import { buildThreadTree, getRootEventId } from "../../lib/threadTree";
 import type { ThreadNode } from "../../lib/threadTree";
 import { debug } from "../../lib/debug";
+import { logDiag } from "../../lib/feedDiagnostics";
 import { AncestorChain } from "./AncestorChain";
 import { ThreadNodeComponent } from "./ThreadNode";
 import { NoteCard } from "../feed/NoteCard";
@@ -65,12 +66,15 @@ export function ThreadView() {
         let root: NDKEvent = focusedEvent;
         let fetchedAncestors: NDKEvent[] = [];
 
+        logDiag({ ts: new Date().toISOString(), action: "thread_load_start", details: `rootId=${rootId ?? "none"} focusedId=${focusedEvent.id}` });
+
         if (rootId && rootId !== focusedEvent.id) {
-          // Fetch root and ancestors in parallel with thread replies
+          const t0 = Date.now();
           const [fetched, ancestorResult] = await Promise.all([
             fetchNoteById(rootId),
             fetchAncestors(focusedEvent),
           ]);
+          logDiag({ ts: new Date().toISOString(), action: "thread_root_ancestors", durationMs: Date.now() - t0, details: `root=${fetched ? "ok" : "missing"} ancestors=${ancestorResult.length}` });
           if (fetched) {
             root = fetched;
             fetchedAncestors = ancestorResult.filter((a) => a.id !== root.id);
@@ -83,7 +87,10 @@ export function ThreadView() {
         if (cancelled) return;
         setRootEvent(root);
 
+        logDiag({ ts: new Date().toISOString(), action: "thread_replies_start", details: `rootId=${root.id}` });
+        const t1 = Date.now();
         const events = await fetchThreadEvents(root.id);
+        logDiag({ ts: new Date().toISOString(), action: "thread_replies_done", durationMs: Date.now() - t1, details: `count=${events.length}` });
         if (cancelled) return;
 
         // Build event list: root + thread replies + focused event + ancestors

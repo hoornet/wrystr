@@ -4,15 +4,84 @@
  * Data stored in localStorage under "wrystr_feed_diag".
  * View in console: JSON.parse(localStorage.getItem("wrystr_feed_diag"))
  * Or open DevTools and call: window.__feedDiag()
+ *
+ * File log: ~/vega-diag.log — written every 2s, survives WebKit crashes and hard reboots.
+ * Inspect after crash: tail -100 ~/vega-diag.log | python3 -c "import sys,json;[print(json.dumps(json.loads(l),indent=2)) for l in sys.stdin]"
  */
 
-import { getNDK } from "./nostr/core";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { homeDir } from "@tauri-apps/api/path";
+import { getNDK, getActiveFetchCount } from "./nostr/core";
 import { debug } from "./debug";
 
 const isDev = import.meta.env.DEV;
 
 const DIAG_KEY = "wrystr_feed_diag";
 const MAX_ENTRIES = 200;
+
+// ─── Disk-based diagnostic log ────────────────────────────────────────────────
+// Writes JSON-lines to ~/vega-diag.log every 2s.
+// Survives WebKit crashes and hard reboots — inspect after hang:
+//   tail -100 ~/vega-diag.log | python3 -c "import sys,json;[print(json.dumps(json.loads(l),indent=2)) for l in sys.stdin if l.strip()]"
+
+const diagFileBuffer: string[] = [];
+let diagFlushTimer: ReturnType<typeof setInterval> | null = null;
+let diagLogPath: string | null = null;
+
+async function getDiagLogPath(): Promise<string> {
+  if (!diagLogPath) {
+    try {
+      diagLogPath = (await homeDir()) + "/vega-diag.log";
+    } catch {
+      diagLogPath = "/tmp/vega-diag.log";
+    }
+  }
+  return diagLogPath;
+}
+
+async function flushDiagBuffer() {
+  if (diagFileBuffer.length === 0) return;
+  const lines = diagFileBuffer.splice(0);
+  try {
+    const path = await getDiagLogPath();
+    await writeTextFile(path, lines.join("\n") + "\n", { append: true });
+  } catch { /* never crash the app on diag write failure */ }
+}
+
+/**
+ * Start periodic disk flushing and memory snapshots.
+ * Call once at app startup. Data written to ~/vega-diag.log every 2s.
+ */
+export function startDiagFileFlusher() {
+  if (diagFlushTimer) return;
+
+  // Write a session-start marker
+  const marker = { ts: Date.now(), t: "session_start", v: "vega-diag-v1" };
+  diagFileBuffer.push(JSON.stringify(marker));
+
+  // Flush immediately so data hits disk before any crash
+  flushDiagBuffer();
+
+  diagFlushTimer = setInterval(async () => {
+    // Memory snapshot
+    const mem = (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
+    const ndk = getNDK();
+    const relayCount = ndk.pool?.relays?.size ?? 0;
+    const connectedRelays = Array.from(ndk.pool?.relays?.values() ?? []).filter((r) => r.connected).length;
+
+    diagFileBuffer.push(JSON.stringify({
+      ts: Date.now(),
+      t: "mem",
+      heapMb: mem ? Math.round(mem.usedJSHeapSize / 1048576) : -1,
+      heapTotalMb: mem ? Math.round(mem.totalJSHeapSize / 1048576) : -1,
+      heapLimitMb: mem ? Math.round(mem.jsHeapSizeLimit / 1048576) : -1,
+      activeFetches: getActiveFetchCount(),
+      relays: `${connectedRelays}/${relayCount}`,
+    }));
+
+    await flushDiagBuffer();
+  }, 500); // 500ms — fast enough to capture pre-crash state
+}
 
 export interface DiagEntry {
   ts: string;             // ISO timestamp
@@ -47,6 +116,9 @@ export function logDiag(entry: DiagEntry) {
   const log = getLog();
   log.push(entry);
   saveLog(log);
+
+  // Also buffer to disk log (flushed every 2s by startDiagFileFlusher)
+  diagFileBuffer.push(JSON.stringify({ ...entry, _ms: Date.now() }));
 
   // Also log to console with color coding
   const style = entry.error

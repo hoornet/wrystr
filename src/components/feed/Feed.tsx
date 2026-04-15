@@ -4,7 +4,7 @@ import { useUserStore } from "../../stores/user";
 import { useMuteStore } from "../../stores/mute";
 import { useUIStore } from "../../stores/ui";
 import { useWoTStore } from "../../stores/wot";
-import { fetchFollowFeed, getNDK, ensureConnected, batchFetchProfileAges } from "../../lib/nostr";
+import { fetchFollowFeed, getNDK, ensureConnected } from "../../lib/nostr";
 import { diagWrapFetch, logDiag } from "../../lib/feedDiagnostics";
 import { detectScript, getEventLanguageTag, FILTER_SCRIPTS } from "../../lib/language";
 import { NoteCard } from "./NoteCard";
@@ -26,6 +26,8 @@ function timeAgo(ts: number): string {
 
 export function Feed() {
   const notes = useFeedStore((s) => s.notes);
+  const pendingNotes = useFeedStore((s) => s.pendingNotes);
+  const flushPendingNotes = useFeedStore((s) => s.flushPendingNotes);
   const loading = useFeedStore((s) => s.loading);
   const error = useFeedStore((s) => s.error);
   const connect = useFeedStore((s) => s.connect);
@@ -63,10 +65,7 @@ export function Feed() {
   useEffect(() => {
     // Show cached notes immediately, then fetch fresh ones once connected
     loadCachedFeed();
-    connect().then(() => loadFeed().then(() => {
-      const pubkeys = [...new Set(useFeedStore.getState().notes.map((e) => e.pubkey))];
-      batchFetchProfileAges(pubkeys);
-    }));
+    connect().then(() => loadFeed());
   }, []);
 
 
@@ -263,6 +262,16 @@ export function Feed() {
               );
             })()}
           </div>
+        )}
+
+        {/* New notes banner — only shown on global tab */}
+        {tab === "global" && pendingNotes.length > 0 && (
+          <button
+            onClick={flushPendingNotes}
+            className="w-full py-2 text-[12px] text-accent border-b border-accent/20 bg-accent/5 hover:bg-accent/10 transition-colors"
+          >
+            {pendingNotes.length} new {pendingNotes.length === 1 ? "note" : "notes"} — click to load
+          </button>
         )}
 
         {filteredNotes.map((event, index) =>

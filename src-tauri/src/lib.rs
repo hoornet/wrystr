@@ -441,12 +441,19 @@ pub fn run() {
             {
                 let main_window = app.get_webview_window("main").unwrap();
                 main_window.with_webview(|webview| {
-                    use webkit2gtk::{SettingsExt, WebViewExt};
+                    use webkit2gtk::{CacheModel, SettingsExt, WebContextExt, WebViewExt};
                     let wv = webview.inner();
                     if let Some(settings) = wv.settings() {
                         settings.set_hardware_acceleration_policy(
                             webkit2gtk::HardwareAccelerationPolicy::Never,
                         );
+                    }
+                    // Minimize WebKit's in-memory content cache (decoded images, scripts, etc.)
+                    // Default is WebBrowser which caches aggressively. DocumentViewer is the
+                    // minimum: no back/forward page cache, smallest memory footprint.
+                    // This is safe for Vega — it's a single-page app, never navigates between pages.
+                    if let Some(ctx) = wv.context() {
+                        ctx.set_cache_model(CacheModel::DocumentViewer);
                     }
                 }).ok();
             }

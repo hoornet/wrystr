@@ -20,7 +20,7 @@ async function verifyNip05(pubkey: string, nip05: string): Promise<VerifyStatus>
   }
 }
 
-export function useNip05Verified(pubkey: string, nip05: string | undefined): "valid" | "invalid" | "checking" | null {
+export function useNip05Verified(pubkey: string, nip05: string | undefined, enabled = true): "valid" | "invalid" | "checking" | null {
   const [status, setStatus] = useState<"valid" | "invalid" | "checking" | null>(() => {
     if (!nip05) return null;
     const cached = cache.get(pubkey);
@@ -30,6 +30,7 @@ export function useNip05Verified(pubkey: string, nip05: string | undefined): "va
 
   useEffect(() => {
     if (!nip05) { setStatus(null); return; }
+    if (!enabled) return;
 
     const cached = cache.get(pubkey);
     if (cached && Date.now() - cached.checkedAt < TTL) {
@@ -45,7 +46,7 @@ export function useNip05Verified(pubkey: string, nip05: string | undefined): "va
       setStatus(result);
     });
     return () => { cancelled = true; };
-  }, [pubkey, nip05]);
+  }, [pubkey, nip05, enabled]);
 
   return status;
 }

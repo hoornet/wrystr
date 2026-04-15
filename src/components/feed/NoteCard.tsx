@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, memo } from "react";
 import { NDKEvent } from "@nostr-dev-kit/ndk";
 import { useProfile } from "../../hooks/useProfile";
 import { useNip05Verified } from "../../hooks/useNip05Verified";
+import { useInView } from "../../hooks/useInView";
 import { useUserStore } from "../../stores/user";
 import { useMuteStore } from "../../stores/mute";
 import { useUIStore } from "../../stores/ui";
@@ -27,12 +28,15 @@ function ParentAuthorName({ pubkey }: { pubkey: string }) {
 }
 
 export const NoteCard = memo(function NoteCard({ event, focused, onReplyInThread }: NoteCardProps) {
+  const cardRef = useRef<HTMLElement>(null);
+  const inView = useInView(cardRef);
+
   const profile = useProfile(event.pubkey);
   const rawName = profile?.displayName || profile?.name;
   const name = (typeof rawName === "string" ? rawName : null) || shortenPubkey(event.pubkey);
   const avatar = profile?.picture;
   const nip05 = typeof profile?.nip05 === "string" ? profile.nip05 : null;
-  const verified = useNip05Verified(event.pubkey, nip05);
+  const verified = useNip05Verified(event.pubkey, nip05, inView);
   const time = event.created_at ? timeAgo(event.created_at) : "";
   const profileCreatedAt = getProfileAge(event.pubkey);
   const isNewAccount = profileCreatedAt !== null && (Date.now() / 1000 - profileCreatedAt) < 60 * 24 * 3600;
@@ -56,7 +60,6 @@ export const NoteCard = memo(function NoteCard({ event, focused, onReplyInThread
   const pTags = event.tags.filter((t) => t[0] === "p");
   const parentAuthorPubkey = pTags.length > 0 ? pTags[pTags.length - 1][1] : null;
 
-  const cardRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (focused) cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [focused]);
@@ -68,7 +71,7 @@ export const NoteCard = memo(function NoteCard({ event, focused, onReplyInThread
     <article
       ref={cardRef}
       data-note-id={event.id}
-      className={`border-b border-border px-4 py-3 hover:bg-bg-hover transition-colors cursor-pointer group/card${focused ? " bg-accent/10 border-l-2 border-l-accent" : ""}`}
+      className={`border-b border-border px-4 py-3 hover:bg-bg-hover transition-colors cursor-pointer group/card [content-visibility:auto] [contain-intrinsic-size:auto_120px]${focused ? " bg-accent/10 border-l-2 border-l-accent" : ""}`}
       onClick={(e) => {
         // Don't navigate if clicking on interactive elements
         const target = e.target as HTMLElement;
@@ -83,6 +86,8 @@ export const NoteCard = memo(function NoteCard({ event, focused, onReplyInThread
             <img
               src={avatar}
               alt={`${name}'s avatar`}
+              width={36}
+              height={36}
               className="w-9 h-9 rounded-sm object-cover bg-bg-raised ring-1 ring-transparent hover:ring-accent/40 transition-all"
               loading="lazy"
               onError={(e) => {
@@ -183,7 +188,7 @@ export const NoteCard = memo(function NoteCard({ event, focused, onReplyInThread
           <div>
             <NoteContent content={event.content} inline />
           </div>
-          <NoteContent content={event.content} mediaOnly />
+          {inView && <NoteContent content={event.content} mediaOnly />}
 
           {/* Poll options — kind 1068 */}
           {event.kind === 1068 && <PollWidget event={event} />}
@@ -200,11 +205,12 @@ export const NoteCard = memo(function NoteCard({ event, focused, onReplyInThread
                 }
               }}
               showReply={showReply && !onReplyInThread}
+              enabled={inView}
             />
           )}
 
           {/* Stats visible when logged out */}
-          {!loggedIn && <LoggedOutStats event={event} />}
+          {!loggedIn && <LoggedOutStats event={event} enabled={inView} />}
 
           {/* Inline reply box */}
           {showReply && <InlineReplyBox event={event} name={name} />}

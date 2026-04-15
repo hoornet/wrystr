@@ -31,6 +31,10 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   }
 }
 
+// Start disk diagnostics immediately — before any async work — so data
+// reaches ~/vega-diag.log even if the app crashes in the first few seconds.
+import("./lib/feedDiagnostics").then(({ startDiagFileFlusher }) => startDiagFileFlusher());
+
 // Restore session — pubkey (read-only) or nsec via OS keychain
 useUserStore.getState().restoreSession();
 

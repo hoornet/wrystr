@@ -3,6 +3,14 @@ use crate::relay::filter::Filter;
 use rusqlite::{params, Connection};
 use std::path::Path;
 
+/// Keep at most this many text notes (kind 1) in the local relay cache.
+/// Older notes beyond this limit are evicted on startup to bound memory usage.
+const MAX_KIND1_EVENTS: usize = 5_000;
+
+/// Delete text notes (kind 1) older than this many seconds on startup.
+/// 7 days — remote relays have anything older.
+const KIND1_TTL_SECS: i64 = 7 * 24 * 3600;
+
 pub fn open_relay_db(data_dir: &Path) -> rusqlite::Result<Connection> {
     std::fs::create_dir_all(data_dir).ok();
     let path = data_dir.join("relay.db");
@@ -34,7 +42,51 @@ pub fn open_relay_db(data_dir: &Path) -> rusqlite::Result<Connection> {
          CREATE INDEX IF NOT EXISTS idx_tags_name_value ON event_tags(tag_name, tag_value);
          CREATE INDEX IF NOT EXISTS idx_tags_event ON event_tags(event_id);",
     )?;
+
+    evict_old_events(&conn)?;
+
     Ok(conn)
+}
+
+/// Remove stale text notes on startup to keep the relay cache bounded.
+///
+/// Two passes:
+/// 1. Delete all kind-1 events older than KIND1_TTL_SECS (7 days).
+/// 2. If more than MAX_KIND1_EVENTS remain, delete the oldest ones beyond that cap.
+///
+/// Other kinds (profiles, contact lists, etc.) are not evicted — they are
+/// replaceable/parameterized-replaceable and stay small by design.
+fn evict_old_events(conn: &Connection) -> rusqlite::Result<()> {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+
+    // Pass 1: TTL — delete kind-1 events older than 7 days
+    let cutoff = now - KIND1_TTL_SECS;
+    conn.execute(
+        "DELETE FROM events WHERE kind = 1 AND created_at < ?1",
+        params![cutoff],
+    )?;
+
+    // Pass 2: count cap — keep only the most recent MAX_KIND1_EVENTS kind-1 events
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM events WHERE kind = 1",
+        [],
+        |row| row.get(0),
+    )?;
+    if count > MAX_KIND1_EVENTS as i64 {
+        conn.execute(
+            "DELETE FROM events WHERE kind = 1 AND id NOT IN (
+                 SELECT id FROM events WHERE kind = 1
+                 ORDER BY created_at DESC LIMIT ?1
+             )",
+            params![MAX_KIND1_EVENTS as i64],
+        )?;
+    }
+
+    Ok(())
 }
 
 /// Store an event. Returns true if the event was newly inserted, false if it already existed.

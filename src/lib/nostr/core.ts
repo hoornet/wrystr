@@ -18,23 +18,86 @@ export const FEED_TIMEOUT = 8000;    // 8s for feed fetches
 export const THREAD_TIMEOUT = 5000;  // 5s per thread round-trip
 export const SINGLE_TIMEOUT = 5000;  // 5s for single event lookups
 
-const EMPTY_SET = new Set<NDKEvent>();
+// ─── Active fetch counter + concurrency semaphore ──────────────────
+let _activeFetchCount = 0;
+/** Number of in-flight fetchWithTimeout calls (subscriptions currently open). */
+export function getActiveFetchCount(): number { return _activeFetchCount; }
 
-/** Fetch events with a timeout — returns empty set if relay hangs. */
-export async function fetchWithTimeout(
+// Hard cap on concurrent NDK subscriptions.
+// Without this, rendering 200 cached notes triggers 400+ simultaneous subscriptions
+// (useReplyCount + useZapCount per note), each receiving events from 7+ relays → OOM.
+const MAX_CONCURRENT_FETCHES = 25;
+const _fetchQueue: Array<() => void> = [];
+
+function _runNextFetch() {
+  while (_fetchQueue.length > 0 && _activeFetchCount < MAX_CONCURRENT_FETCHES) {
+    const next = _fetchQueue.shift()!;
+    next();
+  }
+}
+
+/**
+ * Fetch events with explicit subscription lifecycle.
+ *
+ * IMPORTANT: Do NOT use instance.fetchEvents() here. fetchEvents() creates an
+ * NDK subscription internally that we cannot cancel if the timeout fires first.
+ * Abandoned subscriptions keep receiving relay data forever, leaking memory.
+ *
+ * This implementation uses subscribe() directly so we can call sub.stop() on
+ * both EOSE and timeout — guaranteeing no zombie subscriptions.
+ *
+ * Concurrency is capped at MAX_CONCURRENT_FETCHES. Excess calls queue and
+ * start as slots free up.
+ */
+export function fetchWithTimeout(
   instance: NDK,
   filter: NDKFilter,
   timeoutMs: number,
   relaySet?: NDKRelaySet,
 ): Promise<Set<NDKEvent>> {
-  const opts = {
-    cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY,
-    groupable: false,  // Prevent NDK from batching/reusing subscriptions
-  };
-  const promise = relaySet
-    ? instance.fetchEvents(filter, opts, relaySet)
-    : instance.fetchEvents(filter, opts);
-  return withTimeout(promise, timeoutMs, EMPTY_SET);
+  return new Promise((resolve) => {
+    const start = () => {
+      const events = new Set<NDKEvent>();
+      let settled = false;
+      _activeFetchCount++;
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        _activeFetchCount--;
+        clearTimeout(timer);
+        try { sub.stop(); } catch { /* ignore */ }
+        resolve(events);
+        _runNextFetch();
+      };
+
+      const sub = instance.subscribe(
+        filter,
+        {
+          cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY,
+          groupable: false,
+          closeOnEose: true,
+        },
+        relaySet,
+      );
+
+      sub.on("event", (event: NDKEvent) => {
+        if (!settled) events.add(event);
+      });
+      sub.on("eose", finish);
+
+      const timer = setTimeout(() => {
+        debug.warn(`[Vega] Fetch timed out after ${timeoutMs}ms (collected ${events.size} events, queue: ${_fetchQueue.length})`);
+        finish();
+      }, timeoutMs);
+    };
+
+    if (_activeFetchCount < MAX_CONCURRENT_FETCHES) {
+      start();
+    } else {
+      _fetchQueue.push(start);
+    }
+  });
 }
 
 export const RELAY_STORAGE_KEY = "wrystr_relays";
@@ -101,7 +164,10 @@ export function getNDK(): NDK {
   if (!ndk) {
     ndk = new NDK({
       explicitRelayUrls: getStoredRelayUrls(),
-      outboxRelayUrls: OUTBOX_RELAYS,
+      // outboxRelayUrls intentionally omitted — enabling NDK's outbox model causes
+      // it to discover and connect to every event author's preferred relays, ballooning
+      // the relay pool from 7 to 40+ and flooding startLiveFeed() with a firehose of
+      // events from all those relays simultaneously → OOM crash.
     });
     ndkCreatedAt = Date.now();
   }
@@ -121,12 +187,9 @@ export async function resetNDK(): Promise<void> {
   const oldInstance = ndk;
   const oldSigner = oldInstance?.signer ?? null;
 
-  // Preserve all relay URLs (stored + outbox-discovered) before resetting
-  const oldRelayUrls = oldInstance?.pool?.relays
-    ? Array.from(oldInstance.pool.relays.keys()).map(normalizeRelayUrl)
-    : [];
+  // Only preserve the stored relay URLs — do NOT preserve outbox-discovered relays.
+  // Outbox-discovered relays are the source of the relay pool explosion (7 → 40+).
   const storedUrls = getStoredRelayUrls();
-  const allUrls = [...new Set([...storedUrls, ...oldRelayUrls])];
 
   // Disconnect all relays on old instance
   if (oldInstance?.pool?.relays) {
@@ -135,10 +198,10 @@ export async function resetNDK(): Promise<void> {
     }
   }
 
-  // Create fresh instance with all known relay URLs
+  // Create fresh instance with only the stored relay URLs
   ndk = new NDK({
-    explicitRelayUrls: allUrls,
-    outboxRelayUrls: OUTBOX_RELAYS,
+    explicitRelayUrls: storedUrls,
+    // outboxRelayUrls intentionally omitted — see getNDK() comment
   });
   ndkCreatedAt = Date.now();
 

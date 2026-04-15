@@ -49,7 +49,7 @@ function throttledFetch(eventId: string, pubkey?: string): Promise<GroupedReacti
   return promise;
 }
 
-export function useReactions(eventId: string): [GroupedReactions | null, (emoji: string) => void] {
+export function useReactions(eventId: string, enabled = true): [GroupedReactions | null, (emoji: string) => void] {
   const [data, setData] = useState<GroupedReactions | null>(() => cache.get(eventId) ?? null);
   const pubkeyRef = useRef(useUserStore.getState().pubkey);
 
@@ -58,6 +58,7 @@ export function useReactions(eventId: string): [GroupedReactions | null, (emoji:
   });
 
   useEffect(() => {
+    if (!enabled) return;
     if (cache.has(eventId)) {
       setData(cache.get(eventId)!);
       return;
@@ -70,7 +71,7 @@ export function useReactions(eventId: string): [GroupedReactions | null, (emoji:
       }
     });
     return () => { cancelled = true; };
-  }, [eventId]);
+  }, [eventId, enabled]);
 
   const addReaction = (emoji: string) => {
     setData((prev) => {

@@ -17,9 +17,10 @@ interface NoteActionsProps {
   event: NDKEvent;
   onReplyToggle: () => void;
   showReply: boolean;
+  enabled?: boolean;
 }
 
-export function NoteActions({ event, onReplyToggle, showReply }: NoteActionsProps) {
+export function NoteActions({ event, onReplyToggle, showReply, enabled = true }: NoteActionsProps) {
   const profile = useProfile(event.pubkey);
   const name = profileName(profile, event.pubkey.slice(0, 8) + "…");
   const avatar = typeof profile?.picture === "string" ? profile.picture : undefined;
@@ -27,12 +28,12 @@ export function NoteActions({ event, onReplyToggle, showReply }: NoteActionsProp
   const { bookmarkedIds, addBookmark, removeBookmark } = useBookmarkStore();
   const isBookmarked = bookmarkedIds.includes(event.id!);
 
-  const [reactionsData, addReaction] = useReactions(event.id);
+  const [reactionsData, addReaction] = useReactions(event.id, enabled);
   const [reacting, setReacting] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [replyCount] = useReplyCount(event.id);
+  const [replyCount] = useReplyCount(event.id, enabled);
   const [copied, setCopied] = useState(false);
-  const zapData = useZapCount(event.id);
+  const zapData = useZapCount(event.id, enabled);
   const [showZap, setShowZap] = useState(false);
   const [showQuote, setShowQuote] = useState(false);
   const [reposting, setReposting] = useState(false);
@@ -227,10 +228,10 @@ export function NoteActions({ event, onReplyToggle, showReply }: NoteActionsProp
   );
 }
 
-export function LoggedOutStats({ event }: { event: NDKEvent }) {
-  const [reactionsData] = useReactions(event.id);
-  const [replyCount] = useReplyCount(event.id);
-  const zapData = useZapCount(event.id);
+export function LoggedOutStats({ event, enabled = true }: { event: NDKEvent; enabled?: boolean }) {
+  const [reactionsData] = useReactions(event.id, enabled);
+  const [replyCount] = useReplyCount(event.id, enabled);
+  const zapData = useZapCount(event.id, enabled);
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {

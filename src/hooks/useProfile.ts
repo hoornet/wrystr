@@ -6,6 +6,20 @@ const PROFILE_CACHE_MAX = 500;
 const profileCache = new Map<string, any>();
 const pendingRequests = new Map<string, Promise<any>>();
 
+// Hard cap on concurrent NDK profile fetches.
+// Without this, rendering 200 cached notes triggers 200 simultaneous
+// user.fetchProfile() calls (each creates an NDK subscription) → OOM.
+let activeProfileFetches = 0;
+const MAX_PROFILE_CONCURRENT = 8;
+const profileFetchQueue: Array<() => void> = [];
+
+function runNextProfileFetch() {
+  while (profileFetchQueue.length > 0 && activeProfileFetches < MAX_PROFILE_CONCURRENT) {
+    const next = profileFetchQueue.shift()!;
+    next();
+  }
+}
+
 function pruneProfileCache() {
   if (profileCache.size > PROFILE_CACHE_MAX) {
     // Drop oldest entries (Map preserves insertion order)
@@ -32,21 +46,33 @@ export function useProfile(pubkey: string) {
       return;
     }
 
-    // Kick off relay fetch (deduplicated across simultaneous callers)
+    // Kick off relay fetch (deduplicated + concurrency-throttled)
     if (!pendingRequests.has(pubkey)) {
-      const request = fetchProfile(pubkey)
-        .then((p) => {
-          const result = p ?? null;
-          profileCache.set(pubkey, result);
-          pruneProfileCache();
-          pendingRequests.delete(pubkey);
-          if (result) dbSaveProfile(pubkey, JSON.stringify(result));
-          return result;
-        })
-        .catch(() => {
-          pendingRequests.delete(pubkey);
-          return null;
-        });
+      const request = new Promise<any>((resolve) => {
+        const doFetch = () => {
+          activeProfileFetches++;
+          fetchProfile(pubkey)
+            .then((p) => {
+              const result = p ?? null;
+              profileCache.set(pubkey, result);
+              pruneProfileCache();
+              if (result) dbSaveProfile(pubkey, JSON.stringify(result));
+              resolve(result);
+            })
+            .catch(() => resolve(null))
+            .finally(() => {
+              activeProfileFetches--;
+              pendingRequests.delete(pubkey);
+              runNextProfileFetch();
+            });
+        };
+
+        if (activeProfileFetches < MAX_PROFILE_CONCURRENT) {
+          doFetch();
+        } else {
+          profileFetchQueue.push(doFetch);
+        }
+      });
       pendingRequests.set(pubkey, request);
     }
 

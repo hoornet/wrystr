@@ -164,13 +164,24 @@ export function NoteContent({ content, inline, mediaOnly }: NoteContentProps) {
   const quoteIds: string[] = segments.filter((s) => s.type === "quote").map((s) => s.value);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  // --- Inline text + images (safe inside clickable wrapper) ---
+  // --- Inline text only (no images — images go in mediaOnly to allow inView gating) ---
   if (inline) {
     return (
-      <div>
-        <div className="note-content text-text text-[13px] break-words whitespace-pre-wrap leading-relaxed">
-          {renderTextSegments(segments, openHashtag, { resolveMentions: true })}
-        </div>
+      <div className="note-content text-text text-[13px] break-words whitespace-pre-wrap leading-relaxed">
+        {renderTextSegments(segments, openHashtag, { resolveMentions: true })}
+      </div>
+    );
+  }
+
+  // --- Media blocks only (rendered OUTSIDE the clickable wrapper, gated by inView) ---
+  // Images are included here so they only load when the note is near the viewport.
+  if (mediaOnly) {
+    const hasMedia = images.length > 0 || videos.length > 0 || audios.length > 0 || youtubes.length > 0
+      || vimeos.length > 0 || spotifys.length > 0 || tidals.length > 0 || fountains.length > 0 || quoteIds.length > 0;
+    if (!hasMedia) return null;
+
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
         <ImageGrid images={images} onImageClick={setLightboxIndex} />
         {lightboxIndex !== null && (
           <ImageLightbox
@@ -180,18 +191,6 @@ export function NoteContent({ content, inline, mediaOnly }: NoteContentProps) {
             onNavigate={setLightboxIndex}
           />
         )}
-      </div>
-    );
-  }
-
-  // --- Media blocks only (rendered OUTSIDE the clickable wrapper) ---
-  if (mediaOnly) {
-    const hasMedia = videos.length > 0 || audios.length > 0 || youtubes.length > 0
-      || vimeos.length > 0 || spotifys.length > 0 || tidals.length > 0 || fountains.length > 0 || quoteIds.length > 0;
-    if (!hasMedia) return null;
-
-    return (
-      <div onClick={(e) => e.stopPropagation()}>
         <VideoBlock sources={videos} />
         <AudioBlock sources={audios} />
         {youtubes.map((seg, i) => <YouTubeCard key={`yt-${i}`} seg={seg} />)}

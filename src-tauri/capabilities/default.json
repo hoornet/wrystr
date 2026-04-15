@@ -27,6 +27,12 @@
         { "path": "**" }
       ]
     },
+    {
+      "identifier": "fs:allow-write-text-file",
+      "allow": [
+        { "path": "$HOME/vega-diag.log" }
+      ]
+    },
     "notification:default"
   ]
 }

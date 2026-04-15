@@ -4,25 +4,34 @@ import { connectToRelays, ensureConnected, resetNDK, fetchGlobalFeed, fetchBatch
 import { seedReactionsCache } from "../hooks/useReactions";
 import { useToastStore } from "./toast";
 import { dbLoadFeed, dbSaveNotes } from "../lib/db";
-import { diagWrapFetch, logDiag, startRelaySnapshots, getRelayStates } from "../lib/feedDiagnostics";
+import { diagWrapFetch, logDiag, startRelaySnapshots, startDiagFileFlusher, getRelayStates } from "../lib/feedDiagnostics";
 import { debug } from "../lib/debug";
 // Local relay imports deferred to avoid circular dependency
 // import { isLocalRelayEnabled, connectLocalRelay } from "../lib/localRelay";
 
 const TRENDING_CACHE_KEY = "wrystr_trending_cache";
 const TRENDING_TTL = 10 * 60 * 1000; // 10 minutes
-const MAX_FEED_SIZE = 200;
+const MAX_FEED_SIZE = 30;
 
 // Live subscription handle — persists across store calls
 let liveSub: NDKSubscription | null = null;
 
+// Batch incoming live events — flush to state every 250ms instead of per-event.
+// Without this, 8 relays × N events/s each trigger individual Zustand updates
+// → individual React re-renders → cascading profile/image fetches → OOM.
+let liveBatch: NDKEvent[] = [];
+let liveBatchTimer: ReturnType<typeof setTimeout> | null = null;
+
 export function isLiveSubActive(): boolean {
   return liveSub !== null;
 }
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
+// Guards against React StrictMode double-invoke and concurrent calls
+let connectCalled = false;
+let checkInterval: ReturnType<typeof setInterval> | null = null;
 
 interface FeedState {
   notes: NDKEvent[];
+  pendingNotes: NDKEvent[];
   loading: boolean;
   connected: boolean;
   error: string | null;
@@ -34,12 +43,14 @@ interface FeedState {
   loadCachedFeed: () => Promise<void>;
   loadFeed: () => Promise<void>;
   startLiveFeed: () => void;
+  flushPendingNotes: () => void;
   loadTrendingFeed: (force?: boolean) => Promise<void>;
   setFocusedNoteIndex: (n: number) => void;
 }
 
 export const useFeedStore = create<FeedState>((set, get) => ({
   notes: [],
+  pendingNotes: [],
   loading: false,
   connected: false,
   error: null,
@@ -48,8 +59,22 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   trendingNotes: [],
   trendingLoading: false,
   setFocusedNoteIndex: (n: number) => set({ focusedNoteIndex: n }),
+  flushPendingNotes: () => {
+    const { pendingNotes, notes } = get();
+    if (pendingNotes.length === 0) return;
+    const existingIds = new Set(notes.map((n) => n.id));
+    const newEvents = pendingNotes.filter((e) => !existingIds.has(e.id));
+    const merged = [...newEvents, ...notes]
+      .sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
+      .slice(0, MAX_FEED_SIZE);
+    set({ notes: merged, pendingNotes: [], lastUpdated: { ...get().lastUpdated, global: Date.now() } });
+  },
 
   connect: async () => {
+    // Guard: React StrictMode double-invokes effects — only connect once.
+    if (connectCalled) return;
+    connectCalled = true;
+
     try {
       set({ error: null });
       const connectStart = performance.now();
@@ -86,6 +111,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         details: `Initial connection complete`,
       });
       startRelaySnapshots();
+      startDiagFileFlusher(); // writes ~/vega-diag.log every 500ms — survives crashes
 
       // Monitor relay connectivity — check every 5s, reconnect if needed.
       // Always call getNDK() fresh — instance may be replaced by resetNDK().
@@ -130,8 +156,13 @@ export const useFeedStore = create<FeedState>((set, get) => ({
           }
         }
       };
-      setInterval(checkConnection, 5000);
+
+      // Store interval handle so it's never duplicated (guard above prevents this,
+      // but be defensive in case resetNDK restarts things)
+      if (checkInterval) clearInterval(checkInterval);
+      checkInterval = setInterval(checkConnection, 5000);
     } catch (err) {
+      connectCalled = false; // allow retry on error
       set({ error: `Connection failed: ${err}` });
     }
   },
@@ -170,8 +201,10 @@ export const useFeedStore = create<FeedState>((set, get) => ({
       // Persist fresh notes to SQLite (fire-and-forget)
       dbSaveNotes(fresh.map((e) => JSON.stringify(e.rawEvent())));
 
-      // Start live subscription after initial load
-      get().startLiveFeed();
+      // Live subscription disabled: NDK accumulates all incoming firehose events
+      // internally regardless of our pendingNotes cap, causing unbounded memory growth.
+      // Feed is manual-refresh only until NDK subscription memory is resolved.
+      // get().startLiveFeed();
     } catch (err) {
       set({ error: `Feed failed: ${err}`, loading: false });
     }
@@ -199,22 +232,28 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     });
 
     sub.on("event", (event: NDKEvent) => {
-      const current = get().notes;
-      // Deduplicate
-      if (current.some((n) => n.id === event.id)) return;
+      // Accumulate incoming events into pendingNotes — do NOT render them
+      // immediately. Rendering new notes triggers profile image loads which
+      // accumulate in WebKit's decoded image cache without eviction, causing
+      // unbounded memory growth. The user clicks "N new notes" to flush.
+      liveBatch.push(event);
 
-      const updated = [event, ...current]
-        .sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
-        .slice(0, MAX_FEED_SIZE);
-      set({ notes: updated, lastUpdated: { ...get().lastUpdated, global: Date.now() } });
+      if (!liveBatchTimer) {
+        liveBatchTimer = setTimeout(() => {
+          liveBatchTimer = null;
+          const batch = liveBatch;
+          liveBatch = [];
 
-      // Debounced save to SQLite — batch saves every 5s
-      if (!saveTimer) {
-        saveTimer = setTimeout(() => {
-          saveTimer = null;
-          const toSave = get().notes.slice(0, 20);
-          dbSaveNotes(toSave.map((e) => JSON.stringify(e.rawEvent())));
-        }, 5000);
+          const current = get().notes;
+          const pending = get().pendingNotes;
+          const existingIds = new Set([...current, ...pending].map((n) => n.id));
+          const newEvents = batch.filter((e) => !existingIds.has(e.id));
+          if (newEvents.length === 0) return;
+
+          // Cap pending at 100 to avoid unbounded accumulation
+          const updatedPending = [...newEvents, ...pending].slice(0, 100);
+          set({ pendingNotes: updatedPending });
+        }, 250);
       }
     });
 

@@ -175,3 +175,11 @@ CI triggers on the tag and builds all three platforms (Ubuntu, Windows, macOS AR
 **Not yet implemented:**
 - NIP-96 file storage
 - Custom feeds / lists
+- Safe Blossom URL auto-detection (temporarily disabled in v0.12.8 after OOM regression — needs HEAD `Content-Type` validation or known-server whitelist before reintroduction)
+
+## Hard-won Linux/WebKitGTK lessons
+
+- **WebKitGTK does not evict decoded bitmaps** under memory pressure the way Chromium does. Any path that multiplies `<img>` elements per feed page will translate ~linearly into WebProcess RSS. Validate new "render as image" heuristics (e.g. Blossom SHA-256 URLs) with a real content-type probe before shipping.
+- **`MemoryPressureSettings` set on `WebsiteDataManager` only affects the NetworkProcess**, not the WebProcess where decoded bitmaps live. Setting a WebProcess cap requires reaching `WebContext` at construction time (construct-only GObject property) — wry does not currently expose this.
+- **Bisect regression windows before investigating root cause.** If memory behavior changed between versions, `git bisect` the release tags first. Four days of WebKit-level investigation was avoidable once the regression was traced to a single commit in v0.12.6.
+- **Distinguish caches from leaks.** Oscillating memory = elastic cache (fine). Monotonic growth = leak or uncapped working set (fix it).

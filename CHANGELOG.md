@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.12.8 — Fix Linux OOM crash (2026-04-16)
+
+### Fixed
+- Linux WebKit web process no longer grows unbounded to 8–12 GB and self-kills. Memory now oscillates at ~0.85–1.6 GB during heavy scrolling on Linux and Windows. Root cause: the Blossom SHA-256 URL auto-detection regex introduced in v0.12.6 caused 3–5× more `<img>` elements per feed page, which combined with WebKitGTK's weak bitmap eviction pushed the WebProcess past its self-kill threshold. Blossom URL auto-detection is temporarily disabled pending proper validation in v0.12.9.
+- WebKit rendering: `WEBKIT_FORCE_SOFTWARE_RENDERING=1` on Linux to keep the Wayland compositor path intact on Hyprland.
+- `fetchNotifications` was firing 3× in the first 8 seconds of login; now fires once and the first background poll is delayed to 90s.
+
+### Changed
+- v0.12.7 OOM firefighting reverted: follow feed back to 100 events, global feed caches up to 200 — matching pre-crisis v0.12.6 behavior.
+
 ## v0.12.7 — Upload Fixes (2026-04-13)
 
 ### Fixed
